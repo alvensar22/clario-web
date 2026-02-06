@@ -71,8 +71,13 @@ export default async function Home() {
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <Link href="/profile">
+                <Link href={`/profile/${userProfile.username}`}>
                   <Button className="w-full" variant="secondary">
+                    View Profile
+                  </Button>
+                </Link>
+                <Link href="/profile">
+                  <Button className="w-full" variant="ghost">
                     Edit Profile
                   </Button>
                 </Link>

@@ -24,6 +24,7 @@ export interface Database {
           email: string;
           username: string | null;
           avatar_url: string | null;
+          bio: string | null;
           created_at: string;
           updated_at: string | null;
         };
@@ -32,6 +33,7 @@ export interface Database {
           email: string;
           username?: string | null;
           avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string;
           updated_at?: string | null;
         };
@@ -40,6 +42,7 @@ export interface Database {
           email?: string;
           username?: string | null;
           avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string;
           updated_at?: string | null;
         };

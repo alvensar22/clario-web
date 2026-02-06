@@ -13,7 +13,7 @@ const sizeClasses = {
   sm: 'h-8 w-8 text-xs',
   md: 'h-10 w-10 text-sm',
   lg: 'h-24 w-24 text-lg',
-  xl: 'h-32 w-32 text-xl',
+  xl: 'h-40 w-40 text-2xl',
 };
 
 export function Avatar({
@@ -44,7 +44,7 @@ export function Avatar({
           alt={alt}
           fill
           className="rounded-full object-cover"
-          sizes={`${size === 'sm' ? '32' : size === 'md' ? '40' : size === 'lg' ? '96' : '128'}px`}
+          sizes={`${size === 'sm' ? '32' : size === 'md' ? '40' : size === 'lg' ? '96' : size === 'xl' ? '160' : '40'}px`}
         />
       ) : (
         <span className="font-medium">{initials || '?'}</span>

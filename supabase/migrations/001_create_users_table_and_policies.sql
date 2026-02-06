@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   email TEXT NOT NULL,
   username TEXT UNIQUE,
   avatar_url TEXT,
+  bio TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -18,6 +19,19 @@ BEGIN
     AND column_name = 'avatar_url'
   ) THEN
     ALTER TABLE public.users ADD COLUMN avatar_url TEXT;
+  END IF;
+END $$;
+
+-- Add bio column if it doesn't exist (for existing tables)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'users' 
+    AND column_name = 'bio'
+  ) THEN
+    ALTER TABLE public.users ADD COLUMN bio TEXT;
   END IF;
 END $$;
 
