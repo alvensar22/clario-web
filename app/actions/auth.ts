@@ -46,7 +46,7 @@ export async function signUp(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signUp({
+  const { data: authData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -54,8 +54,26 @@ export async function signUp(
     },
   });
 
-  if (error) {
-    return { message: error.message };
+  if (signUpError) {
+    return { message: signUpError.message };
+  }
+
+  // Insert user into public.users table
+  if (authData.user) {
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert({
+        id: authData.user.id,
+        email: authData.user.email,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      // If user already exists (e.g., from previous signup attempt), that's okay
+      // We'll still redirect to onboarding
+      console.error('Error inserting user:', insertError);
+    }
   }
 
   revalidatePath('/', 'layout');

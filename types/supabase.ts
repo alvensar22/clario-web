@@ -18,25 +18,29 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      // Add your table types here
-      // Example:
-      // users: {
-      //   Row: {
-      //     id: string;
-      //     email: string;
-      //     created_at: string;
-      //   };
-      //   Insert: {
-      //     id?: string;
-      //     email: string;
-      //     created_at?: string;
-      //   };
-      //   Update: {
-      //     id?: string;
-      //     email?: string;
-      //     created_at?: string;
-      //   };
-      // };
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          username: string | null;
+          created_at: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          username?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          username?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

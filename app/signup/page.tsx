@@ -72,7 +72,7 @@ function SignUpForm({ formAction, state, isPending }: SignUpFormProps) {
 
   useEffect(() => {
     if (state?.success) {
-      router.push('/');
+      router.push('/onboarding');
     }
   }, [state?.success, router]);
 

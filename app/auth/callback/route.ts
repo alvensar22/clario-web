@@ -13,7 +13,42 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    // If email confirmation was successful, ensure user record exists
+    if (data.user && !error) {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+
+      // Create user record if it doesn't exist
+      if (!existingUser) {
+        await supabase.from('users').insert({
+          id: data.user.id,
+          email: data.user.email,
+        });
+      }
+    }
+  }
+
+  // Redirect to onboarding for new users, or the specified page
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('username')
+      .eq('id', user.id)
+      .single();
+
+    if (!userProfile?.username) {
+      return NextResponse.redirect(new URL('/onboarding', request.url));
+    }
   }
 
   // Redirect to the specified page or home

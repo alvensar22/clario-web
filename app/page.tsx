@@ -2,12 +2,32 @@ import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export default async function Home() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // If user is authenticated, check if they have a username
+  if (user) {
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('username')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    // If there's an error (other than not found), log it but don't redirect
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error fetching user profile:', profileError);
+    }
+
+    // If user record doesn't exist or username is not set, redirect to onboarding
+    if (!userProfile || !userProfile.username) {
+      redirect('/onboarding');
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4 dark:bg-neutral-950">
