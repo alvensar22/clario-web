@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/avatar/avatar';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -11,10 +12,11 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   // If user is authenticated, check if they have a username
+  let userProfile: { username: string; avatar_url: string | null } | null = null;
   if (user) {
-    const { data: userProfile, error: profileError } = await supabase
+    const { data, error: profileError } = await supabase
       .from('users')
-      .select('username')
+      .select('username, avatar_url')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -23,8 +25,15 @@ export default async function Home() {
       console.error('Error fetching user profile:', profileError);
     }
 
-    // If user record doesn't exist or username is not set, redirect to onboarding
-    if (!userProfile || !userProfile.username) {
+    // Type assertion needed due to Supabase type inference limitations
+    const profileData = data as unknown as { username: string | null; avatar_url: string | null } | null;
+    if (profileData?.username) {
+      userProfile = {
+        username: profileData.username,
+        avatar_url: profileData.avatar_url,
+      };
+    } else {
+      // User record doesn't exist or username is not set, redirect to onboarding
       redirect('/onboarding');
     }
   }
@@ -44,18 +53,35 @@ export default async function Home() {
         </div>
 
         <div className="space-y-4">
-          {user ? (
+          {user && userProfile ? (
             <>
-              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  You are successfully authenticated.
-                </p>
+              <div className="flex flex-col items-center gap-4 rounded-lg border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900">
+                <Avatar
+                  src={userProfile.avatar_url || undefined}
+                  fallback={user.email || ''}
+                  size="lg"
+                />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    @{userProfile.username}
+                  </p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {user.email}
+                  </p>
+                </div>
               </div>
-              <form action={signOut}>
-                <Button type="submit" className="w-full" variant="secondary">
-                  Sign out
-                </Button>
-              </form>
+              <div className="flex flex-col gap-2">
+                <Link href="/profile">
+                  <Button className="w-full" variant="secondary">
+                    Edit Profile
+                  </Button>
+                </Link>
+                <form action={signOut}>
+                  <Button type="submit" className="w-full" variant="ghost">
+                    Sign out
+                  </Button>
+                </form>
+              </div>
             </>
           ) : (
             <div className="flex flex-col gap-3">
