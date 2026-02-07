@@ -1,6 +1,7 @@
 import { getApiClient } from '@/lib/api/server';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/avatar/avatar';
+import { FeedNav } from '@/components/feed/feed-nav';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -24,21 +25,23 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4 dark:bg-neutral-950">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="mb-2 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-            Welcome
-          </h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            {user
-              ? `Signed in as ${user.email}`
-              : 'Get started by signing in to your account'}
-          </p>
-        </div>
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
+      {user && userProfile && <FeedNav />}
+      <div className="flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <h1 className="mb-2 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+              Welcome
+            </h1>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              {user
+                ? `Signed in as ${user.email}`
+                : 'Get started by signing in to your account'}
+            </p>
+          </div>
 
-        <div className="space-y-4">
-          {user && userProfile ? (
+          <div className="space-y-4">
+            {user && userProfile ? (
             <>
               <div className="flex flex-col items-center gap-4 rounded-lg border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900">
                 <Avatar
@@ -87,6 +90,7 @@ export default async function Home() {
               </Link>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
