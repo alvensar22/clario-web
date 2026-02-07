@@ -13,7 +13,6 @@ import type {
   ApiUserInterestsResponse,
   ApiPutUserInterestsBody,
   ApiPublicProfileInterestsResponse,
-  ApiCategory,
   ApiPost,
   ApiCreatePostBody,
   ApiFollowStatus,
@@ -116,10 +115,6 @@ export async function getApiClient() {
         `/api/users/${encodeURIComponent(username)}/interests`,
         { cookieHeader }
       );
-    },
-
-    async getCategories(): Promise<ApiResult<ApiCategory[]>> {
-      return fetchApi<ApiCategory[]>('/api/categories');
     },
 
     async getPosts(feed?: 'following' | 'interests' | 'explore'): Promise<ApiResult<{ posts: ApiPost[] }>> {

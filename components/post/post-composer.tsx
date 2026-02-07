@@ -1,21 +1,21 @@
 'use client';
 
 import { api } from '@/lib/api/client';
-import type { ApiCategory } from '@/lib/api/types';
+import type { ApiInterest } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 interface PostComposerProps {
   currentUser: { username: string; avatar_url: string | null };
-  categories: ApiCategory[];
+  interests: ApiInterest[];
 }
 
-export function PostComposer({ currentUser, categories }: PostComposerProps) {
+export function PostComposer({ currentUser, interests }: PostComposerProps) {
   const router = useRouter();
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [interestId, setInterestId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export function PostComposer({ currentUser, categories }: PostComposerProps) {
     const { error: err } = await api.createPost({
       content: trimmed,
       media_url: mediaUrl ?? undefined,
-      category_id: categoryId ?? undefined,
+      interest_id: interestId ?? undefined,
     });
     setPosting(false);
     if (err) {
@@ -127,14 +127,14 @@ export function PostComposer({ currentUser, categories }: PostComposerProps) {
           )}
         </button>
         <select
-          value={categoryId ?? ''}
-          onChange={(e) => setCategoryId(e.target.value || null)}
+          value={interestId ?? ''}
+          onChange={(e) => setInterestId(e.target.value || null)}
           className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
         >
-          <option value="">Category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+          <option value="">Interest</option>
+          {interests.map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.name}
             </option>
           ))}
         </select>

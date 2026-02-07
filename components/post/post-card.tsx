@@ -20,7 +20,7 @@ interface PostCardProps {
 export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: PostCardProps) {
   const username = post.author?.username ?? 'unknown';
   const avatarUrl = post.author?.avatar_url ?? null;
-  const categoryName = post.category?.name;
+  const interestName = post.interest?.name;
   const isProfile = variant === 'profile';
   const isOwnPost = !!currentUserId && !!post.user_id && String(post.user_id) === String(currentUserId);
 
@@ -52,7 +52,7 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
             <Link href={`/profile/${username}`} className={linkClass}>
               @{username}
             </Link>
-            {categoryName && <span className={tagClass}>{categoryName}</span>}
+            {interestName && <span className={tagClass}>{interestName}</span>}
             {isOwnPost && (
               <PostCardMenu
                 post={post}

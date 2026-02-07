@@ -78,23 +78,16 @@ export interface ApiPublicProfileInterestsResponse {
   interests: ApiInterest[];
 }
 
-/** Category from GET /api/categories */
-export interface ApiCategory {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-/** Post as returned in feed / user posts (with author and category) */
+/** Post as returned in feed / user posts (with author and interest) */
 export interface ApiPost {
   id: string;
   user_id: string;
   content: string;
   media_url: string | null;
-  category_id: string | null;
+  interest_id: string | null;
   created_at: string;
   author?: { username: string | null; avatar_url: string | null };
-  category?: { name: string } | null;
+  interest?: { name: string } | null;
   like_count?: number;
   liked?: boolean;
 }
@@ -132,14 +125,14 @@ export interface ApiComment {
 export interface ApiCreatePostBody {
   content: string;
   media_url?: string | null;
-  category_id?: string | null;
+  interest_id?: string | null;
 }
 
 /** Body for PATCH /api/posts/[id] */
 export interface ApiUpdatePostBody {
   content?: string;
   media_url?: string | null;
-  category_id?: string | null;
+  interest_id?: string | null;
 }
 
 /** Response from POST /api/posts/upload */

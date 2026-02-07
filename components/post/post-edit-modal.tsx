@@ -1,7 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api/client';
-import type { ApiCategory, ApiPost } from '@/lib/api/types';
+import type { ApiInterest, ApiPost } from '@/lib/api/types';
 import { useCallback, useEffect, useState } from 'react';
 
 interface PostEditModalProps {
@@ -18,9 +18,9 @@ export function PostEditModal({
   onSuccess,
 }: PostEditModalProps) {
   const [content, setContent] = useState(post.content);
-  const [categoryId, setCategoryId] = useState<string | null>(post.category_id ?? null);
+  const [interestId, setInterestId] = useState<string | null>(post.interest_id ?? null);
   const [mediaUrl, setMediaUrl] = useState<string | null>(post.media_url ?? null);
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [interests, setInterests] = useState<ApiInterest[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +28,8 @@ export function PostEditModal({
   const isProfile = variant === 'profile';
 
   useEffect(() => {
-    api.getCategories().then((res) => {
-      if (res.data) setCategories(res.data);
+    api.getInterests().then((res) => {
+      if (res.data) setInterests(res.data);
       setLoading(false);
     });
   }, []);
@@ -46,7 +46,7 @@ export function PostEditModal({
       setSaving(true);
       const res = await api.updatePost(post.id, {
         content: trimmed,
-        category_id: categoryId ?? null,
+        interest_id: interestId ?? null,
         media_url: mediaUrl ?? null,
       });
       setSaving(false);
@@ -56,7 +56,7 @@ export function PostEditModal({
       }
       onSuccess();
     },
-    [post.id, content, categoryId, mediaUrl, onSuccess]
+    [post.id, content, interestId, mediaUrl, onSuccess]
   );
 
   const overlayClass =
@@ -117,19 +117,19 @@ export function PostEditModal({
             )}
             {!loading && (
               <div>
-                <label htmlFor="edit-category" className="mb-1 block text-sm text-neutral-500 dark:text-neutral-400">
-                  Category
+                <label htmlFor="edit-interest" className="mb-1 block text-sm text-neutral-500 dark:text-neutral-400">
+                  Interest
                 </label>
                 <select
-                  id="edit-category"
-                  value={categoryId ?? ''}
-                  onChange={(e) => setCategoryId(e.target.value || null)}
+                  id="edit-interest"
+                  value={interestId ?? ''}
+                  onChange={(e) => setInterestId(e.target.value || null)}
                   className={inputClass}
                 >
                   <option value="">None</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+                  {interests.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name}
                     </option>
                   ))}
                 </select>

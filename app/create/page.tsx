@@ -7,9 +7,9 @@ export default async function CreatePostPage() {
   const { data: session } = await api.getSession();
   if (!session?.user) redirect('/login');
 
-  const [{ data: me }, { data: categories }] = await Promise.all([
+  const [{ data: me }, { data: interests }] = await Promise.all([
     api.getMe(),
-    api.getCategories(),
+    api.getInterests(),
   ]);
   if (!me?.username) redirect('/onboarding');
 
@@ -18,7 +18,7 @@ export default async function CreatePostPage() {
       <div className="mx-auto max-w-xl px-4 py-8">
         <PostComposer
           currentUser={{ username: me.username, avatar_url: me.avatar_url }}
-          categories={categories ?? []}
+          interests={interests ?? []}
         />
       </div>
     </div>

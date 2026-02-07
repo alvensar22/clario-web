@@ -7,7 +7,7 @@ interface RouteParams {
 
 /**
  * GET /api/users/[username]/posts
- * Returns posts by that user (public). With category name.
+ * Returns posts by that user (public). With interest name.
  */
 export async function GET(_request: Request, { params }: RouteParams) {
   const { username } = await params;
@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   const { data: rows, error } = (await supabase
     .from('posts')
-    .select('id, user_id, content, media_url, category_id, created_at')
+    .select('id, user_id, content, media_url, interest_id, created_at')
     .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
     .limit(50)) as {
@@ -47,7 +47,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       user_id: string;
       content: string;
       media_url: string | null;
-      category_id: string | null;
+      interest_id: string | null;
       created_at: string;
     }[] | null;
     error: unknown;
@@ -83,22 +83,22 @@ export async function GET(_request: Request, { params }: RouteParams) {
     (myLikesRes.data ?? []).forEach((r) => likedSet.add(r.post_id));
   }
 
-  const categoryIds = [...new Set(posts.map((p) => p.category_id).filter(Boolean))] as string[];
-  const categoriesRes =
-    categoryIds.length > 0
-      ? await supabase.from('categories').select('id, name').in('id', categoryIds)
+  const interestIds = [...new Set(posts.map((p) => p.interest_id).filter(Boolean))] as string[];
+  const interestsRes =
+    interestIds.length > 0
+      ? await supabase.from('interests').select('id, name').in('id', interestIds)
       : { data: [] as { id: string; name: string }[] };
-  const categoriesMap = new Map(
-    (categoriesRes.data ?? []).map((c) => [c.id, { name: c.name }])
+  const interestsMap = new Map(
+    (interestsRes.data ?? []).map((i) => [i.id, { name: i.name }])
   );
 
-  const postsWithCategory = posts.map((p) => ({
+  const postsWithInterest = posts.map((p) => ({
     ...p,
     author,
-    category: p.category_id ? categoriesMap.get(p.category_id) ?? null : null,
+    interest: p.interest_id ? interestsMap.get(p.interest_id) ?? null : null,
     like_count: likeCounts.get(p.id) ?? 0,
     liked: likedSet.has(p.id),
   }));
 
-  return NextResponse.json({ posts: postsWithCategory });
+  return NextResponse.json({ posts: postsWithInterest });
 }

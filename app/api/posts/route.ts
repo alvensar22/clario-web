@@ -4,13 +4,13 @@ import { NextResponse } from 'next/server';
 
 type FeedType = 'following' | 'interests' | 'explore';
 
-const POST_SELECT = 'id, user_id, content, media_url, category_id, created_at';
+const POST_SELECT = 'id, user_id, content, media_url, interest_id, created_at';
 type PostRow = {
   id: string;
   user_id: string;
   content: string;
   media_url: string | null;
-  category_id: string | null;
+  interest_id: string | null;
   created_at: string;
 };
 
@@ -22,7 +22,7 @@ async function getPostsWithMeta(
   if (rows.length === 0) return { posts: [] as ReturnType<typeof mapPost>[] };
   const postIds = rows.map((p) => p.id);
   const userIds = [...new Set(rows.map((p) => p.user_id))];
-  const categoryIds = [...new Set(rows.map((p) => p.category_id).filter(Boolean))] as string[];
+  const interestIds = [...new Set(rows.map((p) => p.interest_id).filter(Boolean))] as string[];
 
   const likeCountPromise =
     postIds.length > 0
@@ -36,19 +36,20 @@ async function getPostsWithMeta(
       : Promise.resolve(new Map<string, number>());
   const likedSetPromise =
     currentUserId && postIds.length > 0
-      ? (supabase
+      ? supabase
           .from('likes')
           .select('post_id')
           .eq('user_id', currentUserId)
-          .in('post_id', postIds) as Promise<{ data: { post_id: string }[] | null }>).then((r) => new Set((r.data ?? []).map((x) => x.post_id)))
+          .in('post_id', postIds)
+          .then((r) => new Set((r.data ?? []).map((x: { post_id: string }) => x.post_id)))
       : Promise.resolve(new Set<string>());
 
-  const [usersRes, categoriesRes, likeCounts, likedSet] = await Promise.all([
+  const [usersRes, interestsRes, likeCounts, likedSet] = await Promise.all([
     userIds.length > 0
       ? supabase.from('users').select('id, username, avatar_url').in('id', userIds)
       : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] },
-    categoryIds.length > 0
-      ? supabase.from('categories').select('id, name').in('id', categoryIds)
+    interestIds.length > 0
+      ? supabase.from('interests').select('id, name').in('id', interestIds)
       : { data: [] as { id: string; name: string }[] },
     likeCountPromise,
     likedSetPromise,
@@ -57,14 +58,14 @@ async function getPostsWithMeta(
   const usersMap = new Map(
     (usersRes.data ?? []).map((u) => [u.id, { username: u.username, avatar_url: u.avatar_url }])
   );
-  const categoriesMap = new Map(
-    (categoriesRes.data ?? []).map((c) => [c.id, { name: c.name }])
+  const interestsMap = new Map(
+    (interestsRes.data ?? []).map((i) => [i.id, { name: i.name }])
   );
 
   const mapPost = (p: PostRow) => ({
     ...p,
     author: usersMap.get(p.user_id),
-    category: p.category_id ? categoriesMap.get(p.category_id) ?? null : null,
+    interest: p.interest_id ? interestsMap.get(p.interest_id) ?? null : null,
     like_count: likeCounts.get(p.id) ?? 0,
     liked: likedSet.has(p.id),
   });
@@ -74,7 +75,7 @@ async function getPostsWithMeta(
 /**
  * GET /api/posts?feed=following|interests|explore
  * following: posts from users current user follows
- * interests: posts whose category matches user's selected interests (interests.category_id)
+ * interests: posts whose interest_id is in the user's selected interests
  * explore: all posts, latest first (default)
  * Auth required for following and interests; explore works without auth but feed page requires auth.
  */
@@ -131,19 +132,10 @@ export async function GET(request: Request) {
         const result = await getPostsWithMeta(supabase, [], user.id);
         return NextResponse.json(result);
       }
-      const { data: interestsWithCategory } = (await supabase
-        .from('interests')
-        .select('category_id')
-        .in('id', interestIds)) as { data: { category_id: string | null }[] | null };
-      const categoryIds = [...new Set((interestsWithCategory ?? []).map((r) => r.category_id).filter(Boolean))] as string[];
-      if (categoryIds.length === 0) {
-        const result = await getPostsWithMeta(supabase, [], user.id);
-        return NextResponse.json(result);
-      }
       const { data: rows, error } = (await supabase
         .from('posts')
         .select(POST_SELECT)
-        .in('category_id', categoryIds)
+        .in('interest_id', interestIds)
         .order('created_at', { ascending: false })
         .limit(50)) as { data: PostRow[] | null; error: unknown };
       if (error) {
@@ -180,7 +172,7 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/posts
- * Create a post. Body: { content: string, media_url?: string, category_id?: string }. Auth required.
+ * Create a post. Body: { content: string, media_url?: string, interest_id?: string }. Auth required.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -196,7 +188,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { content?: string; media_url?: string | null; category_id?: string | null };
+  let body: { content?: string; media_url?: string | null; interest_id?: string | null };
   try {
     body = await request.json();
   } catch {
@@ -218,13 +210,13 @@ export async function POST(request: Request) {
     user_id: user.id,
     content,
     media_url: body.media_url ?? null,
-    category_id: body.category_id ?? null,
+    interest_id: body.interest_id ?? null,
   };
 
   const { data, error } = await supabase
     .from('posts')
     .insert(insert as never)
-    .select('id, user_id, content, media_url, category_id, created_at')
+    .select('id, user_id, content, media_url, interest_id, created_at')
     .single();
 
   if (error) {

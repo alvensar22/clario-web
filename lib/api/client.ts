@@ -13,7 +13,6 @@ import type {
   ApiInterest,
   ApiUserInterestsResponse,
   ApiPutUserInterestsBody,
-  ApiCategory,
   ApiPost,
   ApiCreatePostBody,
   ApiUpdatePostBody,
@@ -144,10 +143,6 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body),
     });
-  },
-
-  async getCategories(): Promise<ApiResult<ApiCategory[]>> {
-    return fetchApi<ApiCategory[]>('/api/categories');
   },
 
   async getPosts(feed?: 'following' | 'interests' | 'explore'): Promise<ApiResult<{ posts: ApiPost[] }>> {
