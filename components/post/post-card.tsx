@@ -2,8 +2,10 @@
 
 import type { ApiPost } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
+import { ImagePreview } from '@/components/ui/image-preview';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 import { PostActions } from './post-actions';
 import { PostCardMenu } from './post-card-menu';
 
@@ -18,6 +20,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: PostCardProps) {
+  const [showImagePreview, setShowImagePreview] = useState(false);
   const username = post.author?.username ?? 'unknown';
   const avatarUrl = post.author?.avatar_url ?? null;
   const interestName = post.interest?.name;
@@ -63,16 +66,28 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
           </div>
           <p className={contentClass}>{post.content}</p>
           {post.media_url && (
-            <div className={`mt-3 overflow-hidden ${mediaBorderClass}`}>
-              <Image
-                src={post.media_url}
-                alt=""
-                width={600}
-                height={400}
-                className="aspect-video w-full object-cover"
-                unoptimized={post.media_url.includes('supabase')}
-              />
-            </div>
+            <>
+              <button
+                onClick={() => setShowImagePreview(true)}
+                className={`mt-3 overflow-hidden ${mediaBorderClass} cursor-zoom-in transition-opacity hover:opacity-90`}
+              >
+                <Image
+                  src={post.media_url}
+                  alt=""
+                  width={600}
+                  height={400}
+                  className="aspect-video w-full object-cover"
+                  unoptimized={post.media_url.includes('supabase')}
+                />
+              </button>
+              {showImagePreview && (
+                <ImagePreview
+                  src={post.media_url}
+                  alt={`Image from ${username}`}
+                  onClose={() => setShowImagePreview(false)}
+                />
+              )}
+            </>
           )}
           <PostActions post={post} variant={variant} />
         </div>
