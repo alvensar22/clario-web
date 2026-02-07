@@ -1,82 +1,34 @@
 import { getApiClient } from '@/lib/api/server';
-import { Button } from '@/components/ui/button';
-import { Avatar } from '@/components/avatar/avatar';
-import { FeedNav } from '@/components/feed/feed-nav';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { FeedNav } from '@/components/feed/feed-nav';
+import { FeedList } from '@/components/feed/feed-list';
+import { FeedTabs, type FeedTab } from '@/components/feed/feed-tabs';
+import { FeedEmpty } from '@/components/feed/feed-empty';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
-export default async function Home() {
+export const dynamic = 'force-dynamic';
+
+interface HomePageProps {
+  searchParams: Promise<{ tab?: string }>;
+}
+
+export default async function Home({ searchParams }: HomePageProps) {
   const api = await getApiClient();
   const { data: session } = await api.getSession();
-  const user = session?.user ?? null;
-
-  let userProfile: { username: string; avatar_url: string | null } | null = null;
-  if (user) {
-    const { data: me } = await api.getMe();
-    if (!me?.username) {
-      redirect('/onboarding');
-    }
-    const { data: interestsData } = await api.getMyInterests();
-    const interestIds = interestsData?.interestIds ?? [];
-    if (interestIds.length === 0) {
-      redirect('/onboarding/interests');
-    }
-    userProfile = { username: me.username, avatar_url: me.avatar_url ?? null };
-  }
-
-  return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950">
-      {user && userProfile && <FeedNav />}
-      <div className="flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-              Welcome
+  
+  // Not logged in - show landing page with sign in/sign up
+  if (!session?.user) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-neutral-950">
+        <div className="flex items-center justify-center px-4 py-16">
+          <div className="w-full max-w-md text-center">
+            <h1 className="mb-4 text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+              Welcome to Clario
             </h1>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              {user
-                ? `Signed in as ${user.email}`
-                : 'Get started by signing in to your account'}
+            <p className="mb-8 text-neutral-600 dark:text-neutral-400">
+              Connect with people who share your interests
             </p>
-          </div>
-
-          <div className="space-y-4">
-            {user && userProfile ? (
-            <>
-              <div className="flex flex-col items-center gap-4 rounded-lg border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900">
-                <Avatar
-                  src={userProfile.avatar_url || undefined}
-                  fallback={user.email || ''}
-                  size="lg"
-                />
-                <div className="text-center">
-                  <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                    @{userProfile.username}
-                  </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    {user.email}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Link href={`/profile/${userProfile.username}`}>
-                  <Button className="w-full" variant="secondary">
-                    View Profile
-                  </Button>
-                </Link>
-                <Link href="/profile">
-                  <Button className="w-full" variant="ghost">
-                    Edit Profile
-                  </Button>
-                </Link>
-                <form action="/api/auth/signout" method="POST">
-                  <Button type="submit" className="w-full" variant="ghost">
-                    Sign out
-                  </Button>
-                </form>
-              </div>
-            </>
-          ) : (
             <div className="flex flex-col gap-3">
               <Link href="/login">
                 <Button className="w-full" variant="primary">
@@ -89,9 +41,38 @@ export default async function Home() {
                 </Button>
               </Link>
             </div>
-          )}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Logged in - check onboarding status
+  const { data: me } = await api.getMe();
+  if (!me?.username) redirect('/onboarding');
+
+  const { data: interestsData } = await api.getMyInterests();
+  if ((interestsData?.interestIds?.length ?? 0) === 0) redirect('/onboarding/interests');
+
+  // Show feed for logged-in users who completed onboarding
+  const { tab } = await searchParams;
+  const feed: FeedTab = ['following', 'interests', 'explore'].includes(tab ?? '') ? (tab as FeedTab) : 'explore';
+
+  const { data } = await api.getPosts(feed);
+  const posts = data?.posts ?? [];
+
+  return (
+    <div className="min-h-screen bg-black">
+      <FeedNav theme="dark" />
+      <div className="mx-auto max-w-xl border-x border-neutral-800">
+        <div className="border-b border-neutral-800 px-4 py-4">
+          <FeedTabs />
+        </div>
+        {posts.length === 0 ? (
+          <FeedEmpty variant={feed} />
+        ) : (
+          <FeedList posts={posts} currentUserId={session.user.id} />
+        )}
       </div>
     </div>
   );
