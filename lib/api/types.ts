@@ -95,6 +95,25 @@ export interface ApiPost {
   created_at: string;
   author?: { username: string | null; avatar_url: string | null };
   category?: { name: string } | null;
+  like_count?: number;
+  liked?: boolean;
+}
+
+/** Follow status from GET /api/users/[username]/follow */
+export interface ApiFollowStatus {
+  following: boolean;
+  followerCount: number;
+  followingCount: number;
+}
+
+/** Comment as returned from GET /api/posts/[id]/comments */
+export interface ApiComment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  author?: { username: string | null; avatar_url: string | null };
 }
 
 /** Body for POST /api/posts */

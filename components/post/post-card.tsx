@@ -4,18 +4,24 @@ import type { ApiPost } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import Image from 'next/image';
 import Link from 'next/link';
+import { PostActions } from './post-actions';
 
 interface PostCardProps {
   post: ApiPost;
   /** 'feed' = black theme (default), 'profile' = neutral border/muted text */
   variant?: 'feed' | 'profile';
+  /** Current user id for showing delete on own posts */
+  currentUserId?: string | null;
+  /** Called after post is deleted (e.g. router.refresh) */
+  onDelete?: (postId: string) => void;
 }
 
-export function PostCard({ post, variant = 'feed' }: PostCardProps) {
+export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: PostCardProps) {
   const username = post.author?.username ?? 'unknown';
   const avatarUrl = post.author?.avatar_url ?? null;
   const categoryName = post.category?.name;
   const isProfile = variant === 'profile';
+  const isOwnPost = !!currentUserId && post.user_id === currentUserId;
 
   const linkClass = isProfile
     ? 'font-medium text-neutral-900 dark:text-neutral-100 hover:underline'
@@ -29,14 +35,11 @@ export function PostCard({ post, variant = 'feed' }: PostCardProps) {
   const mediaBorderClass = isProfile
     ? 'rounded-lg border border-neutral-200 dark:border-neutral-800'
     : 'rounded-lg border border-neutral-800';
-  const actionsClass = isProfile
-    ? 'mt-4 flex gap-6 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'
-    : 'mt-4 flex gap-6 text-neutral-500 hover:text-white';
 
   return (
-    <article className="p-4">
+    <article className="p-4 transition-colors hover:bg-neutral-900/30 dark:hover:bg-neutral-900/20">
       <div className="flex gap-3">
-        <Link href={`/profile/${username}`} className="shrink-0">
+        <Link href={`/profile/${username}`} className="shrink-0 ring-offset-black focus-visible:rounded-full focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2">
           <Avatar
             src={avatarUrl ?? undefined}
             fallback={username}
@@ -63,28 +66,12 @@ export function PostCard({ post, variant = 'feed' }: PostCardProps) {
               />
             </div>
           )}
-          <div className={actionsClass}>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 text-sm"
-              aria-label="Like"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span>Like</span>
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 text-sm"
-              aria-label="Comment"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span>Comment</span>
-            </button>
-          </div>
+          <PostActions
+            post={post}
+            variant={variant}
+            isOwnPost={isOwnPost}
+            onDelete={onDelete}
+          />
         </div>
       </div>
     </article>

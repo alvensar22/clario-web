@@ -1,7 +1,8 @@
 import { getApiClient } from '@/lib/api/server';
 import { Avatar } from '@/components/avatar/avatar';
 import { Button } from '@/components/ui/button';
-import { PostCard } from '@/components/post/post-card';
+import { ProfileFollowButton } from '@/components/profile/profile-follow-button';
+import { ProfilePostsList } from '@/components/profile/profile-posts-list';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -22,11 +23,13 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
     { data: userProfile, error },
     { data: interestsData },
     { data: postsData },
+    { data: followStatus },
   ] = await Promise.all([
     api.getSession(),
     api.getUserByUsername(username),
     api.getPublicProfileInterests(username),
     api.getUserPosts(username),
+    api.getFollowStatus(username),
   ]);
 
   if (error || !userProfile || !userProfile.username) {
@@ -38,12 +41,13 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const bio = userProfile.bio || null;
   const interests = interestsData?.interests ?? [];
   const posts = postsData?.posts ?? [];
+  const follow = followStatus ?? { following: false, followerCount: 0, followingCount: 0 };
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
-      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-12">
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mb-10">
+          <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start sm:gap-10">
             <div className="shrink-0">
               <Avatar
                 src={userProfile.avatar_url || undefined}
@@ -54,8 +58,8 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
             </div>
 
             <div className="flex-1 text-center sm:text-left">
-              <div className="mb-4">
-                <h1 className="mb-2 text-3xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+              <div className="mb-3">
+                <h1 className="mb-1 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-3xl">
                   {displayName}
                 </h1>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -95,6 +99,16 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
                 )}
               </div>
 
+              <div className="mb-6">
+                <ProfileFollowButton
+                  username={username}
+                  initialFollowing={follow.following}
+                  initialFollowerCount={follow.followerCount}
+                  initialFollowingCount={follow.followingCount}
+                  isOwnProfile={isOwnProfile}
+                />
+              </div>
+
               {isOwnProfile && (
                 <Link href="/profile">
                   <Button variant="secondary" className="w-full sm:w-auto">
@@ -106,12 +120,12 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
 
-        <div className="border-t border-neutral-200 pt-12 dark:border-neutral-800">
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+        <div className="border-t border-neutral-200 pt-10 dark:border-neutral-800">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
               Posts
             </h2>
-            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
               {isOwnProfile
                 ? 'Your posts appear here'
                 : `${displayName}'s posts`}
@@ -143,13 +157,10 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
-              {posts.map((post) => (
-                <li key={post.id}>
-                  <PostCard post={post} variant="profile" />
-                </li>
-              ))}
-            </ul>
+            <ProfilePostsList
+              posts={posts}
+              currentUserId={session?.user?.id ?? null}
+            />
           )}
         </div>
       </div>

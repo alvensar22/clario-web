@@ -38,7 +38,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         {posts.length === 0 ? (
           <FeedEmpty variant={feed} />
         ) : (
-          <FeedList posts={posts} />
+          <FeedList posts={posts} currentUserId={session.user.id} />
         )}
       </div>
     </div>

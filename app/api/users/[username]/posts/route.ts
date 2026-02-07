@@ -61,6 +61,28 @@ export async function GET(_request: Request, { params }: RouteParams) {
   }
 
   const posts = rows ?? [];
+  const postIds = posts.map((p) => p.id);
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+
+  const likeCounts = new Map<string, number>();
+  const likedSet = new Set<string>();
+  if (postIds.length > 0) {
+    const [likesRes, myLikesRes] = await Promise.all([
+      supabase.from('likes').select('post_id').in('post_id', postIds),
+      currentUser
+        ? (supabase.from('likes').select('post_id').eq('user_id', currentUser.id).in('post_id', postIds) as Promise<{
+            data: { post_id: string }[] | null;
+          }>)
+        : Promise.resolve({ data: null }),
+    ]);
+    (likesRes.data ?? []).forEach((r: { post_id: string }) => {
+      likeCounts.set(r.post_id, (likeCounts.get(r.post_id) ?? 0) + 1);
+    });
+    (myLikesRes.data ?? []).forEach((r) => likedSet.add(r.post_id));
+  }
+
   const categoryIds = [...new Set(posts.map((p) => p.category_id).filter(Boolean))] as string[];
   const categoriesRes =
     categoryIds.length > 0
@@ -74,6 +96,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
     ...p,
     author,
     category: p.category_id ? categoriesMap.get(p.category_id) ?? null : null,
+    like_count: likeCounts.get(p.id) ?? 0,
+    liked: likedSet.has(p.id),
   }));
 
   return NextResponse.json({ posts: postsWithCategory });

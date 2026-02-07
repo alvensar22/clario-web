@@ -17,6 +17,8 @@ import type {
   ApiPost,
   ApiCreatePostBody,
   ApiPostUploadResponse,
+  ApiFollowStatus,
+  ApiComment,
 } from '@/lib/api/types';
 
 const getBaseUrl = (): string => {
@@ -182,5 +184,50 @@ export const api = {
 
   async getUserPosts(username: string): Promise<ApiResult<{ posts: ApiPost[] }>> {
     return fetchApi<{ posts: ApiPost[] }>(`/api/users/${encodeURIComponent(username)}/posts`);
+  },
+
+  async getFollowStatus(username: string): Promise<ApiResult<ApiFollowStatus>> {
+    return fetchApi<ApiFollowStatus>(`/api/users/${encodeURIComponent(username)}/follow`);
+  },
+
+  async followUser(username: string): Promise<ApiResult<{ following: boolean }>> {
+    return fetchApi<{ following: boolean }>(`/api/users/${encodeURIComponent(username)}/follow`, {
+      method: 'POST',
+    });
+  },
+
+  async unfollowUser(username: string): Promise<ApiResult<{ following: boolean }>> {
+    return fetchApi<{ following: boolean }>(`/api/users/${encodeURIComponent(username)}/follow`, {
+      method: 'DELETE',
+    });
+  },
+
+  async likePost(postId: string): Promise<ApiResult<{ count: number; liked: boolean }>> {
+    return fetchApi<{ count: number; liked: boolean }>(`/api/posts/${encodeURIComponent(postId)}/like`, {
+      method: 'POST',
+    });
+  },
+
+  async unlikePost(postId: string): Promise<ApiResult<{ count: number; liked: boolean }>> {
+    return fetchApi<{ count: number; liked: boolean }>(`/api/posts/${encodeURIComponent(postId)}/like`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getComments(postId: string): Promise<ApiResult<{ comments: ApiComment[] }>> {
+    return fetchApi<{ comments: ApiComment[] }>(`/api/posts/${encodeURIComponent(postId)}/comments`);
+  },
+
+  async addComment(postId: string, content: string): Promise<ApiResult<ApiComment>> {
+    return fetchApi<ApiComment>(`/api/posts/${encodeURIComponent(postId)}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  async deletePost(postId: string): Promise<ApiResult<{ success: boolean }>> {
+    return fetchApi<{ success: boolean }>(`/api/posts/${encodeURIComponent(postId)}`, {
+      method: 'DELETE',
+    });
   },
 };

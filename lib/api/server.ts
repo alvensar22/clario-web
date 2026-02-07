@@ -16,6 +16,8 @@ import type {
   ApiCategory,
   ApiPost,
   ApiCreatePostBody,
+  ApiFollowStatus,
+  ApiComment,
 } from '@/lib/api/types';
 import { cookies } from 'next/headers';
 
@@ -138,6 +140,41 @@ export async function getApiClient() {
         `/api/users/${encodeURIComponent(username)}/posts`,
         { cookieHeader }
       );
+    },
+
+    async getFollowStatus(username: string): Promise<ApiResult<ApiFollowStatus>> {
+      return fetchApi<ApiFollowStatus>(
+        `/api/users/${encodeURIComponent(username)}/follow`,
+        { cookieHeader }
+      );
+    },
+
+    async followUser(username: string): Promise<ApiResult<{ following: boolean }>> {
+      return fetchApi<{ following: boolean }>(
+        `/api/users/${encodeURIComponent(username)}/follow`,
+        { method: 'POST', cookieHeader }
+      );
+    },
+
+    async unfollowUser(username: string): Promise<ApiResult<{ following: boolean }>> {
+      return fetchApi<{ following: boolean }>(
+        `/api/users/${encodeURIComponent(username)}/follow`,
+        { method: 'DELETE', cookieHeader }
+      );
+    },
+
+    async getComments(postId: string): Promise<ApiResult<{ comments: ApiComment[] }>> {
+      return fetchApi<{ comments: ApiComment[] }>(
+        `/api/posts/${encodeURIComponent(postId)}/comments`,
+        { cookieHeader }
+      );
+    },
+
+    async deletePost(postId: string): Promise<ApiResult<{ success: boolean }>> {
+      return fetchApi<{ success: boolean }>(`/api/posts/${encodeURIComponent(postId)}`, {
+        method: 'DELETE',
+        cookieHeader,
+      });
     },
   };
 }
