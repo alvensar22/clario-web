@@ -1,8 +1,11 @@
 import { getApiClient } from '@/lib/api/server';
 import { Avatar } from '@/components/avatar/avatar';
 import { Button } from '@/components/ui/button';
+import { PostCard } from '@/components/post/post-card';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 interface ProfilePageProps {
   params: Promise<{
@@ -14,10 +17,16 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
   const api = await getApiClient();
 
-  const [{ data: session }, { data: userProfile, error }, { data: interestsData }] = await Promise.all([
+  const [
+    { data: session },
+    { data: userProfile, error },
+    { data: interestsData },
+    { data: postsData },
+  ] = await Promise.all([
     api.getSession(),
     api.getUserByUsername(username),
     api.getPublicProfileInterests(username),
+    api.getUserPosts(username),
   ]);
 
   if (error || !userProfile || !userProfile.username) {
@@ -28,6 +37,7 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const displayName = userProfile.username;
   const bio = userProfile.bio || null;
   const interests = interestsData?.interests ?? [];
+  const posts = postsData?.posts ?? [];
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
@@ -103,15 +113,15 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
             </h2>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
               {isOwnProfile
-                ? 'Your posts will appear here'
-                : `${displayName}'s posts will appear here`}
+                ? 'Your posts appear here'
+                : `${displayName}'s posts`}
             </p>
           </div>
 
-          <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed border-neutral-200 bg-neutral-50/50 py-16 dark:border-neutral-800 dark:bg-neutral-900/50">
-            <div className="text-center">
+          {posts.length === 0 ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 py-16 dark:border-neutral-800 dark:bg-neutral-900/50">
               <svg
-                className="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-600"
+                className="h-10 w-10 text-neutral-400 dark:text-neutral-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -123,16 +133,24 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <h3 className="mt-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              <p className="mt-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                 No posts yet
-              </h3>
-              <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+              </p>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
                 {isOwnProfile
-                  ? 'Start sharing your thoughts and ideas.'
-                  : 'Check back later for posts.'}
+                  ? 'Share something from the create page.'
+                  : 'Check back later.'}
               </p>
             </div>
-          </div>
+          ) : (
+            <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
+              {posts.map((post) => (
+                <li key={post.id}>
+                  <PostCard post={post} variant="profile" />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

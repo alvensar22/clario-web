@@ -84,6 +84,52 @@ export interface Database {
           created_at?: string;
         };
       };
+      categories: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          created_at?: string;
+        };
+      };
+      posts: {
+        Row: {
+          id: string;
+          user_id: string;
+          content: string;
+          media_url: string | null;
+          category_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          content: string;
+          media_url?: string | null;
+          category_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          content?: string;
+          media_url?: string | null;
+          category_id?: string | null;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -108,3 +154,7 @@ export type UsersUpdate = Database['public']['Tables']['users']['Update'];
 export type InterestsRow = Database['public']['Tables']['interests']['Row'];
 export type UserInterestsRow = Database['public']['Tables']['user_interests']['Row'];
 export type UserInterestsInsert = Database['public']['Tables']['user_interests']['Insert'];
+
+export type CategoriesRow = Database['public']['Tables']['categories']['Row'];
+export type PostsRow = Database['public']['Tables']['posts']['Row'];
+export type PostsInsert = Database['public']['Tables']['posts']['Insert'];

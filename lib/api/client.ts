@@ -13,6 +13,10 @@ import type {
   ApiInterest,
   ApiUserInterestsResponse,
   ApiPutUserInterestsBody,
+  ApiCategory,
+  ApiPost,
+  ApiCreatePostBody,
+  ApiPostUploadResponse,
 } from '@/lib/api/types';
 
 const getBaseUrl = (): string => {
@@ -136,5 +140,46 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body),
     });
+  },
+
+  async getCategories(): Promise<ApiResult<ApiCategory[]>> {
+    return fetchApi<ApiCategory[]>('/api/categories');
+  },
+
+  async getPosts(): Promise<ApiResult<{ posts: ApiPost[] }>> {
+    return fetchApi<{ posts: ApiPost[] }>('/api/posts');
+  },
+
+  async createPost(body: ApiCreatePostBody): Promise<ApiResult<ApiPost>> {
+    return fetchApi<ApiPost>('/api/posts', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  async uploadPostImage(file: File): Promise<ApiResult<ApiPostUploadResponse>> {
+    const base = getBaseUrl();
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(`${base}/api/posts/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    const text = await res.text();
+    let data: ApiPostUploadResponse | undefined;
+    let error: string | undefined;
+    try {
+      const parsed = (text ? JSON.parse(text) : {}) as ApiPostUploadResponse & { error?: string };
+      if (res.ok) data = parsed;
+      else error = parsed.error ?? res.statusText;
+    } catch {
+      error = text || res.statusText;
+    }
+    return { data, error, status: res.status };
+  },
+
+  async getUserPosts(username: string): Promise<ApiResult<{ posts: ApiPost[] }>> {
+    return fetchApi<{ posts: ApiPost[] }>(`/api/users/${encodeURIComponent(username)}/posts`);
   },
 };

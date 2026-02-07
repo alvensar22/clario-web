@@ -13,6 +13,9 @@ import type {
   ApiUserInterestsResponse,
   ApiPutUserInterestsBody,
   ApiPublicProfileInterestsResponse,
+  ApiCategory,
+  ApiPost,
+  ApiCreatePostBody,
 } from '@/lib/api/types';
 import { cookies } from 'next/headers';
 
@@ -109,6 +112,29 @@ export async function getApiClient() {
     async getPublicProfileInterests(username: string): Promise<ApiResult<ApiPublicProfileInterestsResponse>> {
       return fetchApi<ApiPublicProfileInterestsResponse>(
         `/api/users/${encodeURIComponent(username)}/interests`,
+        { cookieHeader }
+      );
+    },
+
+    async getCategories(): Promise<ApiResult<ApiCategory[]>> {
+      return fetchApi<ApiCategory[]>('/api/categories');
+    },
+
+    async getPosts(): Promise<ApiResult<{ posts: ApiPost[] }>> {
+      return fetchApi<{ posts: ApiPost[] }>('/api/posts', { cookieHeader });
+    },
+
+    async createPost(body: ApiCreatePostBody): Promise<ApiResult<ApiPost>> {
+      return fetchApi<ApiPost>('/api/posts', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        cookieHeader,
+      });
+    },
+
+    async getUserPosts(username: string): Promise<ApiResult<{ posts: ApiPost[] }>> {
+      return fetchApi<{ posts: ApiPost[] }>(
+        `/api/users/${encodeURIComponent(username)}/posts`,
         { cookieHeader }
       );
     },
