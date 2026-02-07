@@ -1,4 +1,6 @@
 import { getApiClient } from '@/lib/api/server';
+import { Sidebar } from '@/components/layout/sidebar';
+import { TopNav } from '@/components/layout/top-nav';
 import { Avatar } from '@/components/avatar/avatar';
 import { Button } from '@/components/ui/button';
 import { ProfileFollowButton } from '@/components/profile/profile-follow-button';
@@ -44,8 +46,11 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const follow = followStatus ?? { following: false, followerCount: 0, followingCount: 0 };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950">
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="min-h-screen bg-black">
+      <Sidebar username={session?.user?.id === userProfile.id ? userProfile.username : undefined} />
+      <TopNav />
+      <main className="ml-20 pt-14">
+        <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-10">
           <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start sm:gap-10">
             <div className="shrink-0">
@@ -59,26 +64,26 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
 
             <div className="flex-1 text-center sm:text-left">
               <div className="mb-3">
-                <h1 className="mb-1 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-3xl">
+                <h1 className="mb-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                   {displayName}
                 </h1>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                <p className="text-sm text-neutral-400">
                   @{userProfile.username}
                 </p>
               </div>
 
               {bio ? (
-                <p className="mb-6 max-w-2xl text-base leading-relaxed text-neutral-700 dark:text-neutral-300">
+                <p className="mb-6 max-w-2xl text-base leading-relaxed text-neutral-300">
                   {bio}
                 </p>
               ) : (
-                <p className="mb-6 text-sm italic text-neutral-400 dark:text-neutral-500">
+                <p className="mb-6 text-sm italic text-neutral-500">
                   No bio yet.
                 </p>
               )}
 
               <div className="mb-6">
-                <h3 className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                <h3 className="mb-2 text-sm font-medium text-neutral-400">
                   Interests
                 </h3>
                 {interests.length > 0 ? (
@@ -86,14 +91,14 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
                     {interests.map((interest) => (
                       <span
                         key={interest.id}
-                        className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-sm text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                        className="rounded-full border border-neutral-700 bg-neutral-800 px-3 py-1 text-sm text-neutral-300"
                       >
                         {interest.name}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm italic text-neutral-400 dark:text-neutral-500">
+                  <p className="text-sm italic text-neutral-500">
                     No interests yet.
                   </p>
                 )}
@@ -120,12 +125,12 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
 
-        <div className="border-t border-neutral-200 pt-10 dark:border-neutral-800">
+        <div className="border-t border-neutral-800 pt-10">
           <div className="mb-6">
-            <h2 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               Posts
             </h2>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="mt-1 text-sm text-neutral-400">
               {isOwnProfile
                 ? 'Your posts appear here'
                 : `${displayName}'s posts`}
@@ -133,9 +138,9 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
           </div>
 
           {posts.length === 0 ? (
-            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 py-16 dark:border-neutral-800 dark:bg-neutral-900/50">
+            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-800 bg-neutral-900/50 py-16">
               <svg
-                className="h-10 w-10 text-neutral-400 dark:text-neutral-600"
+                className="h-10 w-10 text-neutral-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -147,10 +152,10 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <p className="mt-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              <p className="mt-4 text-sm font-medium text-white">
                 No posts yet
               </p>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-sm text-neutral-400">
                 {isOwnProfile
                   ? 'Share something from the create page.'
                   : 'Check back later.'}
@@ -163,7 +168,8 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
             />
           )}
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
