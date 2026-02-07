@@ -1,15 +1,15 @@
 'use client';
 
+import { api } from '@/lib/api/client';
 import { updateUsername } from '@/app/actions/user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useSupabase } from '@/hooks/use-supabase';
+import { useUser } from '@/hooks/use-auth';
 
 export default function OnboardingPage() {
   const { user, loading: userLoading } = useUser();
-  const supabase = useSupabase();
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(updateUsername, null);
   const [checkingUsername, setCheckingUsername] = useState(true);
@@ -20,36 +20,28 @@ export default function OnboardingPage() {
       return;
     }
 
-    // Check if user already has a username
     if (user && !userLoading) {
-      supabase
-        .from('users')
-        .select('username')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          setCheckingUsername(false);
-          if (data?.username) {
-            router.push('/');
-          }
-        })
-        .catch(() => {
-          setCheckingUsername(false);
-        });
+      api.getMe().then(({ data }) => {
+        setCheckingUsername(false);
+        if (data?.username) {
+          router.push('/');
+        }
+      }).catch(() => {
+        setCheckingUsername(false);
+      });
     }
-  }, [user, userLoading, router, supabase]);
+  }, [user, userLoading, router]);
 
   useEffect(() => {
-    if (state?.success) {
-      // Use replace to avoid adding to history, and refresh to ensure server data is fetched
+    if (state && 'success' in state && state.success) {
       router.refresh();
-      // Small delay to ensure database update is committed and cache is cleared
       const timer = setTimeout(() => {
         router.replace('/');
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [state?.success, router]);
+    return undefined;
+  }, [state, router]);
 
   if (userLoading || checkingUsername || !user) {
     return (
@@ -94,12 +86,12 @@ function OnboardingForm({
 }: OnboardingFormProps) {
   return (
     <form action={formAction} className="space-y-4">
-      {state?.message && !state.success && (
+      {state?.message && !(state && 'success' in state && state.success) && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400">
           {state.message}
         </div>
       )}
-      {state?.success && (
+      {state && 'success' in state && state.success && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-600 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400">
           Username updated successfully! Redirecting...
         </div>

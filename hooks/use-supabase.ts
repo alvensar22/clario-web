@@ -1,5 +1,10 @@
 'use client';
 
+/**
+ * @deprecated Prefer useAuth (useUser from '@/hooks/use-auth') and the API client.
+ * Web and mobile should talk only to the API; Supabase is used only in API routes.
+ */
+
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';

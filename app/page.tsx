@@ -1,39 +1,20 @@
-import { createClient } from '@/lib/supabase/server';
-import { signOut } from '@/app/actions/auth';
+import { getApiClient } from '@/lib/api/server';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/avatar/avatar';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 export default async function Home() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const api = await getApiClient();
+  const { data: session } = await api.getSession();
+  const user = session?.user ?? null;
 
-  // If user is authenticated, check if they have a username
   let userProfile: { username: string; avatar_url: string | null } | null = null;
   if (user) {
-    const { data, error: profileError } = await supabase
-      .from('users')
-      .select('username, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    // If there's an error (other than not found), log it but don't redirect
-    if (profileError && profileError.code !== 'PGRST116') {
-      console.error('Error fetching user profile:', profileError);
-    }
-
-    // Type assertion needed due to Supabase type inference limitations
-    const profileData = data as unknown as { username: string | null; avatar_url: string | null } | null;
-    if (profileData?.username) {
-      userProfile = {
-        username: profileData.username,
-        avatar_url: profileData.avatar_url,
-      };
+    const { data: me } = await api.getMe();
+    if (me?.username) {
+      userProfile = { username: me.username, avatar_url: me.avatar_url ?? null };
     } else {
-      // User record doesn't exist or username is not set, redirect to onboarding
       redirect('/onboarding');
     }
   }
@@ -81,7 +62,7 @@ export default async function Home() {
                     Edit Profile
                   </Button>
                 </Link>
-                <form action={signOut}>
+                <form action="/api/auth/signout" method="POST">
                   <Button type="submit" className="w-full" variant="ghost">
                     Sign out
                   </Button>

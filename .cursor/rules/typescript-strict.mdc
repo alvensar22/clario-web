@@ -1,0 +1,30 @@
+---
+description: Strict TypeScript rules for all and future implementation
+alwaysApply: true
+---
+
+# Strict TypeScript
+
+Follow **strict TypeScript** for all current and future code in this project.
+
+## Rules
+
+- **No `any`** – Use proper types, `unknown`, or generics. Never use `any` or `as any` unless there is a documented escape hatch and a TODO to fix.
+- **No `@ts-ignore` or `@ts-expect-error`** without a one-line comment explaining why and a ticket or TODO to remove it.
+- **Strict null/undefined** – Respect `strictNullChecks`. Use optional chaining (`?.`), nullish coalescing (`??`), and explicit checks. Avoid non-null assertion (`!`) unless you have just asserted the value.
+- **Typed API layer** – Use shared types from `lib/api/types.ts` for request/response shapes. Do not duplicate inline object types for the same API; import and use `ApiSession`, `ApiUser`, `ApiUserProfile`, `ApiPublicProfile`, `ApiUpdateMeBody`, `ApiResult<T>`, etc.
+- **Typed handlers** – Route handlers, Server Actions, and API routes must have typed request/response bodies and use `Database` / `UsersRow` / `UsersInsert` / `UsersUpdate` from `types/supabase.ts` where they touch the DB.
+- **Explicit return types** – Prefer explicit return types on public functions and async functions (e.g. `Promise<ApiResult<ApiUserProfile>>`) so contracts are clear.
+- **Index access** – With `noUncheckedIndexedAccess`, index access (e.g. `arr[i]`, `obj[key]`) may be `undefined`; handle it (e.g. optional chaining, default, or guard).
+- **Consistent casing** – Use `forceConsistentCasingInFileNames` (already in tsconfig); keep file names and imports consistent with the filesystem.
+
+## Adding new API surface
+
+1. Define request/response types in `lib/api/types.ts`.
+2. Use them in `lib/api/client.ts` and `lib/api/server.ts` (and in route handlers if returning JSON).
+3. Keep route handler response bodies aligned with those types so client and server stay in sync.
+
+## Supabase
+
+- Use `Database`, `UsersRow`, `UsersInsert`, `UsersUpdate` from `@/types/supabase` for table operations.
+- Where the Supabase client infers `never` for table methods, use a typed variable (e.g. `UsersInsert`) and cast to `never` only at the `.insert(...)` / `.update(...)` call, with a short comment.

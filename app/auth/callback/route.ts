@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import type { UsersInsert } from '@/types/supabase';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 
@@ -25,10 +26,11 @@ export async function GET(request: NextRequest) {
 
       // Create user record if it doesn't exist
       if (!existingUser) {
-        await supabase.from('users').insert({
+        const insert: UsersInsert = {
           id: data.user.id,
-          email: data.user.email,
-        });
+          email: data.user.email ?? '',
+        };
+        await supabase.from('users').insert(insert as never);
       }
     }
   }
@@ -44,7 +46,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('username')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { username: string | null } | null };
 
     if (!userProfile?.username) {
       return NextResponse.redirect(new URL('/onboarding', request.url));

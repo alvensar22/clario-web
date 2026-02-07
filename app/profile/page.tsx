@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { getApiClient } from '@/lib/api/server';
 import { redirect } from 'next/navigation';
 import { AvatarUpload } from '@/components/avatar/avatar-upload';
 import { BioEditor } from '@/components/profile/bio-editor';
@@ -6,23 +6,15 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const api = await getApiClient();
+  const { data: session } = await api.getSession();
 
-  if (!user) {
+  if (!session?.user) {
     redirect('/login');
   }
 
-  // Get user profile with avatar and bio
-  const { data: userProfile } = await supabase
-    .from('users')
-    .select('username, avatar_url, bio')
-    .eq('id', user.id)
-    .single();
+  const { data: userProfile } = await api.getMe();
 
-  // Check if user has completed onboarding
   if (!userProfile?.username) {
     redirect('/onboarding');
   }
@@ -40,7 +32,6 @@ export default async function ProfilePage() {
         </div>
 
         <div className="space-y-8">
-          {/* Avatar Section */}
           <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
             <h2 className="mb-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
               Avatar
@@ -48,15 +39,13 @@ export default async function ProfilePage() {
             <AvatarUpload currentAvatarUrl={userProfile?.avatar_url} />
           </div>
 
-          {/* Bio Section */}
           <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
             <h2 className="mb-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
               Bio
             </h2>
-            <BioEditor currentBio={userProfile?.bio || null} />
+            <BioEditor currentBio={userProfile?.bio ?? null} />
           </div>
 
-          {/* View Profile Link */}
           <div className="flex justify-end">
             <Link href={`/profile/${userProfile.username}`}>
               <Button variant="secondary">View Profile</Button>

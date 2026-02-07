@@ -1,6 +1,5 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export interface AvatarError {
@@ -15,8 +14,19 @@ export interface AvatarSuccess {
 export type AvatarResult = AvatarError | AvatarSuccess;
 
 /**
- * Server action to upload avatar and update user profile
+ * Server action to upload avatar (calls API with cookie-forwarded request).
+ * We need to forward the file to the API; the server-side client doesn't support FormData yet.
+ * So we keep this as a proxy: receive FormData, then call API with the same file.
  */
+async function getCookieHeader(): Promise<string> {
+  const { cookies } = await import('next/headers');
+  const store = await cookies();
+  return store
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ');
+}
+
 export async function uploadAvatar(
   _prevState: AvatarResult | null,
   formData: FormData
@@ -30,13 +40,11 @@ export async function uploadAvatar(
       return { message: 'No file provided' };
     }
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       return { message: 'File must be an image' };
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
       return {
@@ -44,7 +52,6 @@ export async function uploadAvatar(
       };
     }
   } catch (error) {
-    // Handle body size limit errors from Next.js
     if (
       error instanceof Error &&
       (error.message.includes('Body exceeded') ||
@@ -64,109 +71,63 @@ export async function uploadAvatar(
     return { message: 'No file provided' };
   }
 
-  const supabase = await createClient();
+  const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const cookieHeader = await getCookieHeader();
+  const body = new FormData();
+  body.append('avatar', file);
 
-  // Get current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const res = await fetch(`${base}/api/users/me/avatar`, {
+    method: 'POST',
+    body,
+    headers: {
+      Cookie: cookieHeader,
+    },
+    cache: 'no-store',
+  });
 
-  if (userError || !user) {
-    return { message: 'You must be signed in to upload an avatar' };
+  const text = await res.text();
+  let parsed: { avatarUrl?: string; error?: string };
+  try {
+    parsed = text ? JSON.parse(text) : {};
+  } catch {
+    parsed = {};
   }
 
-  // Generate unique filename
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-  const filePath = `${user.id}/${fileName}`;
-
-  // Convert File to ArrayBuffer for upload
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  // Upload to Supabase Storage
-  const { error: uploadError } = await supabase.storage
-    .from('avatars')
-    .upload(filePath, buffer, {
-      contentType: file.type,
-      upsert: true, // Replace existing file if it exists
-    });
-
-  if (uploadError) {
-    console.error('Error uploading avatar:', uploadError);
-    return { message: uploadError.message || 'Failed to upload avatar' };
-  }
-
-  // Get public URL
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-  // Update user record with avatar URL
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ avatar_url: publicUrl })
-    .eq('id', user.id);
-
-  if (updateError) {
-    console.error('Error updating avatar URL:', updateError);
-    // Don't fail completely - the file was uploaded successfully
-    // Just log the error
+  if (!res.ok) {
+    return { message: parsed.error || res.statusText || 'Upload failed' };
   }
 
   revalidatePath('/', 'layout');
   revalidatePath('/', 'page');
 
-  return { success: true, avatarUrl: publicUrl };
+  return { success: true, avatarUrl: parsed.avatarUrl ?? '' };
 }
 
-/**
- * Server action to delete avatar
- */
 export async function deleteAvatar(
   _prevState: AvatarResult | null,
   _formData?: FormData
 ): Promise<AvatarResult> {
-  const supabase = await createClient();
+  const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const cookieHeader = await getCookieHeader();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const res = await fetch(`${base}/api/users/me/avatar`, {
+    method: 'DELETE',
+    headers: {
+      Cookie: cookieHeader,
+    },
+    cache: 'no-store',
+  });
 
-  if (userError || !user) {
-    return { message: 'You must be signed in to delete an avatar' };
+  const text = await res.text();
+  let parsed: { error?: string };
+  try {
+    parsed = text ? JSON.parse(text) : {};
+  } catch {
+    parsed = {};
   }
 
-  // Get current avatar URL
-  const { data: userProfile } = await supabase
-    .from('users')
-    .select('avatar_url')
-    .eq('id', user.id)
-    .single();
-
-  // Delete from storage if exists
-  if (userProfile?.avatar_url) {
-    // Extract file path from URL
-    const url = new URL(userProfile.avatar_url);
-    const pathParts = url.pathname.split('/');
-    const filePath = pathParts.slice(pathParts.indexOf('avatars') + 1).join('/');
-
-    if (filePath) {
-      await supabase.storage.from('avatars').remove([filePath]);
-    }
-  }
-
-  // Update user record to remove avatar URL
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ avatar_url: null })
-    .eq('id', user.id);
-
-  if (updateError) {
-    console.error('Error deleting avatar:', updateError);
-    return { message: updateError.message || 'Failed to delete avatar' };
+  if (!res.ok) {
+    return { message: parsed.error || res.statusText || 'Delete failed' };
   }
 
   revalidatePath('/', 'layout');

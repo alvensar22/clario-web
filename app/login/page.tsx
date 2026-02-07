@@ -1,23 +1,51 @@
 'use client';
 
-import { signIn } from '@/app/actions/auth';
+import { api } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/hooks/use-supabase';
+import { useUser } from '@/hooks/use-auth';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const { user, loading } = useUser();
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState(signIn, null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
-  useEffect(() => {
-    if (user && !loading) {
-      router.push('/');
+  if (user && !loading) {
+    router.push('/');
+    return null;
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+
+    if (!email?.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
     }
-  }, [user, loading, router]);
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
+    setIsPending(true);
+    const { error: err } = await api.signIn(email, password);
+    setIsPending(false);
+
+    if (err) {
+      setError(err);
+      return;
+    }
+    router.push('/');
+    router.refresh();
+  }
 
   if (loading) {
     return (
@@ -39,11 +67,57 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <LoginForm
-          formAction={formAction}
-          state={state}
-          isPending={isPending}
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
+            >
+              Email
+            </label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
+            >
+              Password
+            </label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            variant="primary"
+            isLoading={isPending}
+          >
+            Sign in
+          </Button>
+        </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -58,77 +132,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-interface LoginFormProps {
-  formAction: (formData: FormData) => void;
-  state: { message?: string; field?: string; success?: boolean } | null;
-  isPending: boolean;
-}
-
-function LoginForm({ formAction, state, isPending }: LoginFormProps) {
-  const router = useRouter();
-
-  useEffect(() => {
-    if (state?.success) {
-      router.push('/');
-    }
-  }, [state?.success, router]);
-
-  return (
-    <form action={formAction} className="space-y-4">
-      {state?.message && !state.success && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400">
-          {state.message}
-        </div>
-      )}
-
-      <div>
-        <label
-          htmlFor="email"
-          className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
-        >
-          Email
-        </label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="you@example.com"
-          required
-          autoComplete="email"
-          autoFocus
-          error={state?.field === 'email'}
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="password"
-          className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
-        >
-          Password
-        </label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="••••••••"
-          required
-          autoComplete="current-password"
-          error={state?.field === 'password'}
-        />
-      </div>
-
-      <Button
-        type="submit"
-        className="w-full"
-        variant="primary"
-        isLoading={isPending}
-      >
-        Sign in
-      </Button>
-    </form>
   );
 }

@@ -62,3 +62,8 @@ export interface Database {
     };
   };
 }
+
+/** Convenience types for type-safe table operations */
+export type UsersRow = Database['public']['Tables']['users']['Row'];
+export type UsersInsert = Database['public']['Tables']['users']['Insert'];
+export type UsersUpdate = Database['public']['Tables']['users']['Update'];

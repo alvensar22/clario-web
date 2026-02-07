@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { getApiClient } from '@/lib/api/server';
 import { revalidatePath } from 'next/cache';
 
 export interface BioError {
@@ -14,7 +14,7 @@ export interface BioSuccess {
 export type BioResult = BioError | BioSuccess;
 
 /**
- * Server action to update bio for the current user
+ * Server action to update bio for the current user (calls API).
  */
 export async function updateBio(
   _prevState: BioResult | null,
@@ -22,49 +22,26 @@ export async function updateBio(
 ): Promise<BioResult> {
   const bio = formData.get('bio') as string | null;
 
-  // Bio is optional, but if provided, validate length
   if (bio !== null && bio.length > 500) {
     return {
       message: 'Bio must be less than 500 characters',
     };
   }
 
-  const supabase = await createClient();
+  const api = await getApiClient();
+  const { error } = await api.updateMe({
+    bio: bio?.trim() ?? '',
+  });
 
-  // Get current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return { message: 'You must be signed in to update your bio' };
+  if (error) {
+    return { message: error };
   }
 
-  // Update bio in users table
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ bio: bio?.trim() || null })
-    .eq('id', user.id);
-
-  if (updateError) {
-    console.error('Error updating bio:', updateError);
-    return {
-      message: updateError.message || 'Failed to update bio',
-    };
-  }
-
-  // Get username for revalidation
-  const { data: userData } = await supabase
-    .from('users')
-    .select('username')
-    .eq('id', user.id)
-    .single();
-
+  const { data: me } = await api.getMe();
   revalidatePath('/', 'layout');
   revalidatePath('/profile', 'page');
-  if (userData?.username) {
-    revalidatePath(`/profile/${userData.username}`, 'page');
+  if (me?.username) {
+    revalidatePath(`/profile/${me.username}`, 'page');
   }
 
   return { success: true };

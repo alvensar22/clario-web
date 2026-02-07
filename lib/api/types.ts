@@ -1,0 +1,57 @@
+/**
+ * Shared API types for client, server, and route handlers.
+ * Single source of truth for request/response shapes.
+ */
+
+/** Current session from GET /api/auth/session and sign-in/up responses */
+export interface ApiSession {
+  user: ApiUser | null;
+}
+
+/** Minimal user identity from auth */
+export interface ApiUser {
+  id: string;
+  email: string | null;
+}
+
+/** Full profile from GET /api/users/me and PATCH response */
+export interface ApiUserProfile {
+  id: string;
+  email: string;
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string;
+}
+
+/** Public profile from GET /api/users/[username] */
+export interface ApiPublicProfile {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string;
+}
+
+/** Body for PATCH /api/users/me */
+export interface ApiUpdateMeBody {
+  username?: string;
+  bio?: string;
+}
+
+/** Generic API result from fetch helpers */
+export interface ApiResult<T> {
+  data?: T;
+  error?: string;
+  status: number;
+}
+
+/** Avatar upload success response */
+export interface ApiAvatarResponse {
+  avatarUrl?: string;
+}
+
+/** Avatar/error response from API (error field when not ok) */
+export interface ApiAvatarErrorResponse {
+  error?: string;
+}
