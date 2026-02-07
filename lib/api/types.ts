@@ -123,6 +123,13 @@ export interface ApiCreatePostBody {
   category_id?: string | null;
 }
 
+/** Body for PATCH /api/posts/[id] */
+export interface ApiUpdatePostBody {
+  content?: string;
+  media_url?: string | null;
+  category_id?: string | null;
+}
+
 /** Response from POST /api/posts/upload */
 export interface ApiPostUploadResponse {
   url: string;

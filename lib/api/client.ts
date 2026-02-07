@@ -16,6 +16,7 @@ import type {
   ApiCategory,
   ApiPost,
   ApiCreatePostBody,
+  ApiUpdatePostBody,
   ApiPostUploadResponse,
   ApiFollowStatus,
   ApiComment,
@@ -156,6 +157,13 @@ export const api = {
   async createPost(body: ApiCreatePostBody): Promise<ApiResult<ApiPost>> {
     return fetchApi<ApiPost>('/api/posts', {
       method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  async updatePost(postId: string, body: ApiUpdatePostBody): Promise<ApiResult<ApiPost>> {
+    return fetchApi<ApiPost>(`/api/posts/${encodeURIComponent(postId)}`, {
+      method: 'PATCH',
       body: JSON.stringify(body),
     });
   },

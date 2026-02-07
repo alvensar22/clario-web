@@ -8,20 +8,15 @@ import { PostComments } from './post-comments';
 interface PostActionsProps {
   post: ApiPost;
   variant?: 'feed' | 'profile';
-  isOwnPost?: boolean;
-  onDelete?: (postId: string) => void;
 }
 
 export function PostActions({
   post,
   variant = 'feed',
-  isOwnPost = false,
-  onDelete,
 }: PostActionsProps) {
   const [liked, setLiked] = useState(!!post.liked);
   const [likeCount, setLikeCount] = useState(post.like_count ?? 0);
   const [showComments, setShowComments] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const isProfile = variant === 'profile';
   const actionsClass = isProfile
@@ -35,15 +30,6 @@ export function PostActions({
       setLikeCount(res.data.count);
     }
   }, [post.id, liked]);
-
-  const handleDelete = useCallback(async () => {
-    if (!isOwnPost || !onDelete || deleting) return;
-    if (!confirm('Delete this post?')) return;
-    setDeleting(true);
-    const res = await api.deletePost(post.id);
-    setDeleting(false);
-    if (!res.error) onDelete(post.id);
-  }, [post.id, isOwnPost, onDelete, deleting]);
 
   return (
     <div className={actionsClass}>
@@ -83,16 +69,6 @@ export function PostActions({
         </svg>
         <span>Comment</span>
       </button>
-      {isOwnPost && onDelete && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="text-sm opacity-70 transition-opacity hover:opacity-100 disabled:opacity-50"
-        >
-          {deleting ? '…' : 'Delete'}
-        </button>
-      )}
       {showComments && (
         <div className={`w-full border-t pt-4 mt-2 ${variant === 'profile' ? 'border-neutral-200 dark:border-neutral-800' : 'border-neutral-800/80'}`}>
           <PostComments postId={post.id} variant={variant} />

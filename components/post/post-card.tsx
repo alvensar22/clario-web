@@ -5,6 +5,7 @@ import { Avatar } from '@/components/avatar/avatar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PostActions } from './post-actions';
+import { PostCardMenu } from './post-card-menu';
 
 interface PostCardProps {
   post: ApiPost;
@@ -21,7 +22,7 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
   const avatarUrl = post.author?.avatar_url ?? null;
   const categoryName = post.category?.name;
   const isProfile = variant === 'profile';
-  const isOwnPost = !!currentUserId && post.user_id === currentUserId;
+  const isOwnPost = !!currentUserId && !!post.user_id && String(post.user_id) === String(currentUserId);
 
   const linkClass = isProfile
     ? 'font-medium text-neutral-900 dark:text-neutral-100 hover:underline'
@@ -52,6 +53,13 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
               @{username}
             </Link>
             {categoryName && <span className={tagClass}>{categoryName}</span>}
+            {isOwnPost && (
+              <PostCardMenu
+                post={post}
+                variant={variant}
+                onDelete={onDelete}
+              />
+            )}
           </div>
           <p className={contentClass}>{post.content}</p>
           {post.media_url && (
@@ -66,12 +74,7 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
               />
             </div>
           )}
-          <PostActions
-            post={post}
-            variant={variant}
-            isOwnPost={isOwnPost}
-            onDelete={onDelete}
-          />
+          <PostActions post={post} variant={variant} />
         </div>
       </div>
     </article>
