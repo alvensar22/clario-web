@@ -3,6 +3,7 @@
 import { api } from '@/lib/api/client';
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { FollowListModal, type FollowListMode } from './follow-list-modal';
 
 interface ProfileFollowButtonProps {
   username: string;
@@ -23,6 +24,7 @@ export function ProfileFollowButton({
   const [followerCount, setFollowerCount] = useState(initialFollowerCount);
   const [followingCount] = useState(initialFollowingCount);
   const [loading, setLoading] = useState(false);
+  const [listModal, setListModal] = useState<FollowListMode | null>(null);
 
   const toggle = useCallback(async () => {
     if (isOwnProfile || loading) return;
@@ -41,8 +43,20 @@ export function ProfileFollowButton({
   return (
     <div className="flex flex-wrap items-center gap-4">
       <div className="flex gap-6 text-sm text-neutral-500 dark:text-neutral-400">
-        <span><strong className="font-medium text-neutral-900 dark:text-neutral-100">{followerCount}</strong> followers</span>
-        <span><strong className="font-medium text-neutral-900 dark:text-neutral-100">{followingCount}</strong> following</span>
+        <button
+          type="button"
+          onClick={() => setListModal('followers')}
+          className="transition-colors hover:text-neutral-700 dark:hover:text-neutral-300"
+        >
+          <strong className="font-medium text-neutral-900 dark:text-neutral-100">{followerCount}</strong> followers
+        </button>
+        <button
+          type="button"
+          onClick={() => setListModal('following')}
+          className="transition-colors hover:text-neutral-700 dark:hover:text-neutral-300"
+        >
+          <strong className="font-medium text-neutral-900 dark:text-neutral-100">{followingCount}</strong> following
+        </button>
       </div>
       {!isOwnProfile && (
         <Button
@@ -53,6 +67,13 @@ export function ProfileFollowButton({
         >
           {loading ? '…' : following ? 'Unfollow' : 'Follow'}
         </Button>
+      )}
+      {listModal && (
+        <FollowListModal
+          username={username}
+          mode={listModal}
+          onClose={() => setListModal(null)}
+        />
       )}
     </div>
   );

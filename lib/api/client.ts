@@ -19,6 +19,7 @@ import type {
   ApiUpdatePostBody,
   ApiPostUploadResponse,
   ApiFollowStatus,
+  ApiFollowListResponse,
   ApiComment,
 } from '@/lib/api/types';
 
@@ -196,6 +197,14 @@ export const api = {
 
   async getFollowStatus(username: string): Promise<ApiResult<ApiFollowStatus>> {
     return fetchApi<ApiFollowStatus>(`/api/users/${encodeURIComponent(username)}/follow`);
+  },
+
+  async getFollowers(username: string): Promise<ApiResult<ApiFollowListResponse>> {
+    return fetchApi<ApiFollowListResponse>(`/api/users/${encodeURIComponent(username)}/follow?list=followers`);
+  },
+
+  async getFollowing(username: string): Promise<ApiResult<ApiFollowListResponse>> {
+    return fetchApi<ApiFollowListResponse>(`/api/users/${encodeURIComponent(username)}/follow?list=following`);
   },
 
   async followUser(username: string): Promise<ApiResult<{ following: boolean }>> {

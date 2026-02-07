@@ -8,8 +8,10 @@ interface RouteParams {
 /**
  * GET /api/users/[username]/follow
  * Returns { following, followerCount, followingCount }. Auth optional for counts.
+ * GET /api/users/[username]/follow?list=followers|following
+ * Returns { users } with list of users (id, username, avatar_url).
  */
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const { username } = await params;
   if (!username) {
     return NextResponse.json({ error: 'Username required' }, { status: 400 });
@@ -28,6 +30,33 @@ export async function GET(_request: Request, { params }: RouteParams) {
       { error: (profileError as { message?: string })?.message ?? 'User not found' },
       { status: 404 }
     );
+  }
+
+  const list = new URL(request.url).searchParams.get('list');
+  if (list === 'followers' || list === 'following') {
+    const { data: rows, error } =
+      list === 'followers'
+        ? await supabase.from('follows').select('follower_id').eq('following_id', profile.id)
+        : await supabase.from('follows').select('following_id').eq('follower_id', profile.id);
+    if (error) {
+      return NextResponse.json(
+        { error: (error as { message?: string }).message ?? 'Failed to fetch' },
+        { status: 500 }
+      );
+    }
+    const ids = (rows ?? []).map((r) => (list === 'followers' ? r.follower_id : r.following_id));
+    if (ids.length === 0) return NextResponse.json({ users: [] });
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, username, avatar_url')
+      .in('id', ids);
+    if (usersError) {
+      return NextResponse.json(
+        { error: (usersError as { message?: string }).message ?? 'Failed to fetch' },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json({ users: users ?? [] });
   }
 
   const {

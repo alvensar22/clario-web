@@ -106,6 +106,18 @@ export interface ApiFollowStatus {
   followingCount: number;
 }
 
+/** User summary in followers/following list */
+export interface ApiFollowListUser {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+/** Response from GET /api/users/[username]/followers and /following */
+export interface ApiFollowListResponse {
+  users: ApiFollowListUser[];
+}
+
 /** Comment as returned from GET /api/posts/[id]/comments */
 export interface ApiComment {
   id: string;
