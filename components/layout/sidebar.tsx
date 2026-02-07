@@ -3,7 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export function Sidebar() {
+interface SidebarProps {
+  username?: string;
+}
+
+export function Sidebar({ username }: SidebarProps) {
   const pathname = usePathname();
 
   const navItems = [
@@ -11,11 +15,12 @@ export function Sidebar() {
     { href: '/search', icon: 'search', label: 'Search' },
     { href: '/create', icon: 'create', label: 'Create' },
     { href: '/activity', icon: 'heart', label: 'Activity' },
-    { href: '/profile', icon: 'profile', label: 'Profile' },
+    { href: username ? `/profile/${username}` : '/profile', icon: 'profile', label: 'Profile' },
   ];
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
+    if (href.startsWith('/profile/')) return pathname.startsWith('/profile/');
     return pathname.startsWith(href);
   };
 

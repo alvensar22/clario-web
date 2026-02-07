@@ -110,7 +110,7 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
               </div>
 
               {isOwnProfile && (
-                <Link href="/profile">
+                <Link href="/profile/edit">
                   <Button variant="secondary" className="w-full sm:w-auto">
                     Edit Profile
                   </Button>

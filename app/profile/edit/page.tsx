@@ -80,7 +80,7 @@ export default async function ProfilePage() {
               </p>
             )}
             <Link
-              href="/onboarding/interests?returnTo=/profile"
+              href="/onboarding/interests?returnTo=/profile/edit"
               className="inline-flex items-center rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
             >
               Edit interests

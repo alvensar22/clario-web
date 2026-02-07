@@ -17,7 +17,7 @@ export default async function CreatePostPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar />
+      <Sidebar username={me.username} />
       <TopNav />
       <main className="ml-20 pt-14">
         <div className="mx-auto max-w-2xl px-4 py-8">

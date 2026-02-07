@@ -30,7 +30,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar />
+      <Sidebar username={me.username} />
       <TopNav />
       <main className="ml-20 pt-14">
         <div className="mx-auto max-w-2xl border-x border-neutral-800">
