@@ -14,9 +14,10 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
   const api = await getApiClient();
 
-  const [{ data: session }, { data: userProfile, error }] = await Promise.all([
+  const [{ data: session }, { data: userProfile, error }, { data: interestsData }] = await Promise.all([
     api.getSession(),
     api.getUserByUsername(username),
+    api.getPublicProfileInterests(username),
   ]);
 
   if (error || !userProfile || !userProfile.username) {
@@ -26,6 +27,7 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const isOwnProfile = session?.user?.id === userProfile.id;
   const displayName = userProfile.username;
   const bio = userProfile.bio || null;
+  const interests = interestsData?.interests ?? [];
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
@@ -60,6 +62,28 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
                   No bio yet.
                 </p>
               )}
+
+              <div className="mb-6">
+                <h3 className="mb-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                  Interests
+                </h3>
+                {interests.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {interests.map((interest) => (
+                      <span
+                        key={interest.id}
+                        className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-sm text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                      >
+                        {interest.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm italic text-neutral-400 dark:text-neutral-500">
+                    No interests yet.
+                  </p>
+                )}
+              </div>
 
               {isOwnProfile && (
                 <Link href="/profile">

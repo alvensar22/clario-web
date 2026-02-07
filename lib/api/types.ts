@@ -55,3 +55,25 @@ export interface ApiAvatarResponse {
 export interface ApiAvatarErrorResponse {
   error?: string;
 }
+
+/** Single interest from GET /api/interests */
+export interface ApiInterest {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+/** Response from GET /api/users/me/interests */
+export interface ApiUserInterestsResponse {
+  interestIds: string[];
+}
+
+/** Body for PUT /api/users/me/interests */
+export interface ApiPutUserInterestsBody {
+  interestIds: string[];
+}
+
+/** Response from GET /api/users/[username]/interests */
+export interface ApiPublicProfileInterestsResponse {
+  interests: ApiInterest[];
+}

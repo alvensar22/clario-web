@@ -12,11 +12,15 @@ export default async function Home() {
   let userProfile: { username: string; avatar_url: string | null } | null = null;
   if (user) {
     const { data: me } = await api.getMe();
-    if (me?.username) {
-      userProfile = { username: me.username, avatar_url: me.avatar_url ?? null };
-    } else {
+    if (!me?.username) {
       redirect('/onboarding');
     }
+    const { data: interestsData } = await api.getMyInterests();
+    const interestIds = interestsData?.interestIds ?? [];
+    if (interestIds.length === 0) {
+      redirect('/onboarding/interests');
+    }
+    userProfile = { username: me.username, avatar_url: me.avatar_url ?? null };
   }
 
   return (

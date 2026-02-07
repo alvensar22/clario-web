@@ -3,7 +3,17 @@
  * Forwards cookies so the API recognizes the session.
  */
 
-import type { ApiResult, ApiSession, ApiUserProfile, ApiPublicProfile, ApiUpdateMeBody } from '@/lib/api/types';
+import type {
+  ApiResult,
+  ApiSession,
+  ApiUserProfile,
+  ApiPublicProfile,
+  ApiUpdateMeBody,
+  ApiInterest,
+  ApiUserInterestsResponse,
+  ApiPutUserInterestsBody,
+  ApiPublicProfileInterestsResponse,
+} from '@/lib/api/types';
 import { cookies } from 'next/headers';
 
 function getBaseUrl(): string {
@@ -78,6 +88,29 @@ export async function getApiClient() {
         body: JSON.stringify(body),
         cookieHeader,
       });
+    },
+
+    async getInterests(): Promise<ApiResult<ApiInterest[]>> {
+      return fetchApi<ApiInterest[]>('/api/interests');
+    },
+
+    async getMyInterests(): Promise<ApiResult<ApiUserInterestsResponse>> {
+      return fetchApi<ApiUserInterestsResponse>('/api/users/me/interests', { cookieHeader });
+    },
+
+    async putMyInterests(body: ApiPutUserInterestsBody): Promise<ApiResult<ApiUserInterestsResponse>> {
+      return fetchApi<ApiUserInterestsResponse>('/api/users/me/interests', {
+        method: 'PUT',
+        body: JSON.stringify(body),
+        cookieHeader,
+      });
+    },
+
+    async getPublicProfileInterests(username: string): Promise<ApiResult<ApiPublicProfileInterestsResponse>> {
+      return fetchApi<ApiPublicProfileInterestsResponse>(
+        `/api/users/${encodeURIComponent(username)}/interests`,
+        { cookieHeader }
+      );
     },
   };
 }

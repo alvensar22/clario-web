@@ -47,6 +47,43 @@ export interface Database {
           updated_at?: string | null;
         };
       };
+      interests: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          created_at?: string;
+        };
+      };
+      user_interests: {
+        Row: {
+          user_id: string;
+          interest_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          interest_id: string;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          interest_id?: string;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -67,3 +104,7 @@ export interface Database {
 export type UsersRow = Database['public']['Tables']['users']['Row'];
 export type UsersInsert = Database['public']['Tables']['users']['Insert'];
 export type UsersUpdate = Database['public']['Tables']['users']['Update'];
+
+export type InterestsRow = Database['public']['Tables']['interests']['Row'];
+export type UserInterestsRow = Database['public']['Tables']['user_interests']['Row'];
+export type UserInterestsInsert = Database['public']['Tables']['user_interests']['Insert'];

@@ -13,11 +13,21 @@ export default async function ProfilePage() {
     redirect('/login');
   }
 
-  const { data: userProfile } = await api.getMe();
+  const [{ data: userProfile }, { data: myInterestsData }, { data: allInterests }] = await Promise.all([
+    api.getMe(),
+    api.getMyInterests(),
+    api.getInterests(),
+  ]);
 
   if (!userProfile?.username) {
     redirect('/onboarding');
   }
+
+  const interestIds = new Set(myInterestsData?.interestIds ?? []);
+  const interestNames = (allInterests ?? [])
+    .filter((i) => interestIds.has(i.id))
+    .map((i) => i.name)
+    .sort((a, b) => a.localeCompare(b));
 
   return (
     <div className="min-h-screen bg-white px-4 py-12 dark:bg-neutral-950">
@@ -44,6 +54,37 @@ export default async function ProfilePage() {
               Bio
             </h2>
             <BioEditor currentBio={userProfile?.bio ?? null} />
+          </div>
+
+          <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              Interests
+            </h2>
+            <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
+              Control what you see in your feed.
+            </p>
+            {interestNames.length > 0 ? (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {interestNames.map((name) => (
+                  <span
+                    key={name}
+                    className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-sm text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mb-4 text-sm italic text-neutral-400 dark:text-neutral-500">
+                No interests selected yet.
+              </p>
+            )}
+            <Link
+              href="/onboarding/interests?returnTo=/profile"
+              className="inline-flex items-center rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
+            >
+              Edit interests
+            </Link>
           </div>
 
           <div className="flex justify-end">

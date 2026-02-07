@@ -24,7 +24,7 @@ export default function OnboardingPage() {
       api.getMe().then(({ data }) => {
         setCheckingUsername(false);
         if (data?.username) {
-          router.push('/');
+          router.push('/onboarding/interests');
         }
       }).catch(() => {
         setCheckingUsername(false);
@@ -36,7 +36,7 @@ export default function OnboardingPage() {
     if (state && 'success' in state && state.success) {
       router.refresh();
       const timer = setTimeout(() => {
-        router.replace('/');
+        router.replace('/onboarding/interests');
       }, 200);
       return () => clearTimeout(timer);
     }

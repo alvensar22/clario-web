@@ -10,6 +10,9 @@ import type {
   ApiPublicProfile,
   ApiUpdateMeBody,
   ApiAvatarResponse,
+  ApiInterest,
+  ApiUserInterestsResponse,
+  ApiPutUserInterestsBody,
 } from '@/lib/api/types';
 
 const getBaseUrl = (): string => {
@@ -118,5 +121,20 @@ export const api = {
 
   async getUserByUsername(username: string): Promise<ApiResult<ApiPublicProfile>> {
     return fetchApi<ApiPublicProfile>(`/api/users/${encodeURIComponent(username)}`);
+  },
+
+  async getInterests(): Promise<ApiResult<ApiInterest[]>> {
+    return fetchApi<ApiInterest[]>('/api/interests');
+  },
+
+  async getMyInterests(): Promise<ApiResult<ApiUserInterestsResponse>> {
+    return fetchApi<ApiUserInterestsResponse>('/api/users/me/interests');
+  },
+
+  async putMyInterests(body: ApiPutUserInterestsBody): Promise<ApiResult<ApiUserInterestsResponse>> {
+    return fetchApi<ApiUserInterestsResponse>('/api/users/me/interests', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
   },
 };
