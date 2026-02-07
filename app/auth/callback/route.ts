@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     // If email confirmation was successful, ensure user record exists
-    if (data.user && !error) {
+    if (!error && data?.user) {
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
