@@ -1,6 +1,7 @@
 import { getApiClient } from '@/lib/api/server';
 import { redirect } from 'next/navigation';
-import { FeedNav, type FeedTab } from '@/components/feed/feed-nav';
+import { Sidebar } from '@/components/layout/sidebar';
+import { TopNav, type FeedTab } from '@/components/layout/top-nav';
 import { FeedList } from '@/components/feed/feed-list';
 import { FeedEmpty } from '@/components/feed/feed-empty';
 
@@ -29,14 +30,17 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   return (
     <div className="min-h-screen bg-black">
-      <FeedNav theme="dark" />
-      <div className="mx-auto max-w-xl border-x border-neutral-800">
-        {posts.length === 0 ? (
-          <FeedEmpty variant={feed} />
-        ) : (
-          <FeedList posts={posts} currentUserId={session.user.id} />
-        )}
-      </div>
+      <Sidebar />
+      <TopNav />
+      <main className="ml-20 pt-14">
+        <div className="mx-auto max-w-2xl border-x border-neutral-800">
+          {posts.length === 0 ? (
+            <FeedEmpty variant={feed} />
+          ) : (
+            <FeedList posts={posts} currentUserId={session.user.id} />
+          )}
+        </div>
+      </main>
     </div>
   );
 }
