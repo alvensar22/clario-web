@@ -20,15 +20,38 @@ export async function GET() {
     );
   }
 
-  const { data: profile, error: profileError } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from('users')
     .select('id, email, username, avatar_url, bio, created_at')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   if (profileError) {
     return NextResponse.json(
       { error: profileError.message },
+      { status: 500 }
+    );
+  }
+
+  if (!profile) {
+    const { data: inserted, error: insertError } = await supabase
+      .from('users')
+      .insert({ id: user.id, email: user.email ?? '' } as never)
+      .select('id, email, username, avatar_url, bio, created_at')
+      .maybeSingle();
+
+    if (insertError) {
+      return NextResponse.json(
+        { error: insertError.message },
+        { status: 500 }
+      );
+    }
+    profile = inserted ?? undefined;
+  }
+
+  if (!profile) {
+    return NextResponse.json(
+      { error: 'Profile not found' },
       { status: 404 }
     );
   }
@@ -123,12 +146,19 @@ export async function PATCH(request: Request) {
     .update(updatePayload as never)
     .eq('id', user.id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json(
       { error: error.message },
       { status: 400 }
+    );
+  }
+
+  if (!data) {
+    return NextResponse.json(
+      { error: 'Profile not found' },
+      { status: 404 }
     );
   }
 

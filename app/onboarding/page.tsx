@@ -114,7 +114,6 @@ function OnboardingForm({
           autoFocus
           minLength={3}
           maxLength={20}
-          pattern="[a-zA-Z0-9_-]+"
           error={state?.field === 'username'}
         />
         <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">

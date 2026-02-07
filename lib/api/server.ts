@@ -120,8 +120,9 @@ export async function getApiClient() {
       return fetchApi<ApiCategory[]>('/api/categories');
     },
 
-    async getPosts(): Promise<ApiResult<{ posts: ApiPost[] }>> {
-      return fetchApi<{ posts: ApiPost[] }>('/api/posts', { cookieHeader });
+    async getPosts(feed?: 'following' | 'interests' | 'explore'): Promise<ApiResult<{ posts: ApiPost[] }>> {
+      const url = feed ? `/api/posts?feed=${encodeURIComponent(feed)}` : '/api/posts';
+      return fetchApi<{ posts: ApiPost[] }>(url, { cookieHeader });
     },
 
     async createPost(body: ApiCreatePostBody): Promise<ApiResult<ApiPost>> {

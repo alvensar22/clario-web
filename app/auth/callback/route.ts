@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         .from('users')
         .select('id')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
       // Create user record if it doesn't exist
       if (!existingUser) {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('username')
       .eq('id', user.id)
-      .single() as { data: { username: string | null } | null };
+      .maybeSingle() as { data: { username: string | null } | null };
 
     if (!userProfile?.username) {
       return NextResponse.redirect(new URL('/onboarding', request.url));

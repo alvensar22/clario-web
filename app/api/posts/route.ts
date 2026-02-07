@@ -2,43 +2,25 @@ import { createClient } from '@/lib/supabase/server';
 import type { PostsInsert } from '@/types/supabase';
 import { NextResponse } from 'next/server';
 
-/**
- * GET /api/posts
- * Feed: all posts ordered by latest. Returns posts with author and category.
- */
-export async function GET() {
-  const supabase = await createClient();
-  const { data: rows, error } = (await supabase
-    .from('posts')
-    .select('id, user_id, content, media_url, category_id, created_at')
-    .order('created_at', { ascending: false })
-    .limit(50)) as {
-    data: {
-      id: string;
-      user_id: string;
-      content: string;
-      media_url: string | null;
-      category_id: string | null;
-      created_at: string;
-    }[] | null;
-    error: unknown;
-  };
+type FeedType = 'following' | 'interests' | 'explore';
 
-  if (error) {
-    return NextResponse.json(
-      { error: (error as { message?: string }).message ?? 'Failed to fetch' },
-      { status: 500 }
-    );
-  }
+const POST_SELECT = 'id, user_id, content, media_url, category_id, created_at';
+type PostRow = {
+  id: string;
+  user_id: string;
+  content: string;
+  media_url: string | null;
+  category_id: string | null;
+  created_at: string;
+};
 
-  const posts = rows ?? [];
-  if (posts.length === 0) {
-    return NextResponse.json({ posts: [] });
-  }
-
-  const userIds = [...new Set(posts.map((p) => p.user_id))];
-  const categoryIds = [...new Set(posts.map((p) => p.category_id).filter(Boolean))] as string[];
-
+async function getPostsWithMeta(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: PostRow[]
+) {
+  if (rows.length === 0) return { posts: [] as ReturnType<typeof mapPost>[] };
+  const userIds = [...new Set(rows.map((p) => p.user_id))];
+  const categoryIds = [...new Set(rows.map((p) => p.category_id).filter(Boolean))] as string[];
   const [usersRes, categoriesRes] = await Promise.all([
     userIds.length > 0
       ? supabase.from('users').select('id, username, avatar_url').in('id', userIds)
@@ -47,21 +29,122 @@ export async function GET() {
       ? supabase.from('categories').select('id, name').in('id', categoryIds)
       : { data: [] as { id: string; name: string }[] },
   ]);
-
   const usersMap = new Map(
     (usersRes.data ?? []).map((u) => [u.id, { username: u.username, avatar_url: u.avatar_url }])
   );
   const categoriesMap = new Map(
     (categoriesRes.data ?? []).map((c) => [c.id, { name: c.name }])
   );
-
-  const postsWithMeta = posts.map((p) => ({
+  const mapPost = (p: PostRow) => ({
     ...p,
     author: usersMap.get(p.user_id),
     category: p.category_id ? categoriesMap.get(p.category_id) ?? null : null,
-  }));
+  });
+  return { posts: rows.map(mapPost) };
+}
 
-  return NextResponse.json({ posts: postsWithMeta });
+/**
+ * GET /api/posts?feed=following|interests|explore
+ * following: posts from users current user follows
+ * interests: posts whose category matches user's selected interests (interests.category_id)
+ * explore: all posts, latest first (default)
+ * Auth required for following and interests; explore works without auth but feed page requires auth.
+ */
+export async function GET(request: Request) {
+  const supabase = await createClient();
+  const { searchParams } = new URL(request.url);
+  const feed = (searchParams.get('feed') ?? 'explore') as FeedType;
+  if (!['following', 'interests', 'explore'].includes(feed)) {
+    return NextResponse.json({ error: 'Invalid feed type' }, { status: 400 });
+  }
+
+  if (feed === 'following' || feed === 'interests') {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (feed === 'following') {
+      const { data: followRows } = (await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id)) as { data: { following_id: string }[] | null };
+      const followingIds = (followRows ?? []).map((r) => r.following_id);
+      if (followingIds.length === 0) {
+        const result = await getPostsWithMeta(supabase, []);
+        return NextResponse.json(result);
+      }
+      const { data: rows, error } = (await supabase
+        .from('posts')
+        .select(POST_SELECT)
+        .in('user_id', followingIds)
+        .order('created_at', { ascending: false })
+        .limit(50)) as { data: PostRow[] | null; error: unknown };
+      if (error) {
+        return NextResponse.json(
+          { error: (error as { message?: string }).message ?? 'Failed to fetch' },
+          { status: 500 }
+        );
+      }
+      const result = await getPostsWithMeta(supabase, rows ?? []);
+      return NextResponse.json(result);
+    }
+
+    if (feed === 'interests') {
+      const { data: userInterestRows } = (await supabase
+        .from('user_interests')
+        .select('interest_id')
+        .eq('user_id', user.id)) as { data: { interest_id: string }[] | null };
+      const interestIds = (userInterestRows ?? []).map((r) => r.interest_id);
+      if (interestIds.length === 0) {
+        const result = await getPostsWithMeta(supabase, []);
+        return NextResponse.json(result);
+      }
+      const { data: interestsWithCategory } = (await supabase
+        .from('interests')
+        .select('category_id')
+        .in('id', interestIds)) as { data: { category_id: string | null }[] | null };
+      const categoryIds = [...new Set((interestsWithCategory ?? []).map((r) => r.category_id).filter(Boolean))] as string[];
+      if (categoryIds.length === 0) {
+        const result = await getPostsWithMeta(supabase, []);
+        return NextResponse.json(result);
+      }
+      const { data: rows, error } = (await supabase
+        .from('posts')
+        .select(POST_SELECT)
+        .in('category_id', categoryIds)
+        .order('created_at', { ascending: false })
+        .limit(50)) as { data: PostRow[] | null; error: unknown };
+      if (error) {
+        return NextResponse.json(
+          { error: (error as { message?: string }).message ?? 'Failed to fetch' },
+          { status: 500 }
+        );
+      }
+      const result = await getPostsWithMeta(supabase, rows ?? []);
+      return NextResponse.json(result);
+    }
+  }
+
+  // explore: all posts
+  const { data: rows, error } = (await supabase
+    .from('posts')
+    .select(POST_SELECT)
+    .order('created_at', { ascending: false })
+    .limit(50)) as { data: PostRow[] | null; error: unknown };
+
+  if (error) {
+    return NextResponse.json(
+      { error: (error as { message?: string }).message ?? 'Failed to fetch' },
+      { status: 500 }
+    );
+  }
+
+  const result = await getPostsWithMeta(supabase, rows ?? []);
+  return NextResponse.json(result);
 }
 
 /**

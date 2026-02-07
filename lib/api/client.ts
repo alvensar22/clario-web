@@ -146,8 +146,9 @@ export const api = {
     return fetchApi<ApiCategory[]>('/api/categories');
   },
 
-  async getPosts(): Promise<ApiResult<{ posts: ApiPost[] }>> {
-    return fetchApi<{ posts: ApiPost[] }>('/api/posts');
+  async getPosts(feed?: 'following' | 'interests' | 'explore'): Promise<ApiResult<{ posts: ApiPost[] }>> {
+    const url = feed ? `/api/posts?feed=${encodeURIComponent(feed)}` : '/api/posts';
+    return fetchApi<{ posts: ApiPost[] }>(url);
   },
 
   async createPost(body: ApiCreatePostBody): Promise<ApiResult<ApiPost>> {
