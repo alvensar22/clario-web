@@ -1,8 +1,7 @@
 import { getApiClient } from '@/lib/api/server';
 import { redirect } from 'next/navigation';
-import { FeedNav } from '@/components/feed/feed-nav';
+import { FeedNav, type FeedTab } from '@/components/feed/feed-nav';
 import { FeedList } from '@/components/feed/feed-list';
-import { FeedTabs, type FeedTab } from '@/components/feed/feed-tabs';
 import { FeedEmpty } from '@/components/feed/feed-empty';
 
 export const dynamic = 'force-dynamic';
@@ -32,9 +31,6 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     <div className="min-h-screen bg-black">
       <FeedNav theme="dark" />
       <div className="mx-auto max-w-xl border-x border-neutral-800">
-        <div className="border-b border-neutral-800 px-4 py-4">
-          <FeedTabs />
-        </div>
         {posts.length === 0 ? (
           <FeedEmpty variant={feed} />
         ) : (

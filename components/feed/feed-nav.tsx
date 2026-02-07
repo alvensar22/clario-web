@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 
-const TABS = [
-  { label: 'For You', slug: 'for-you', href: '/feed' },
-  { label: 'Following', slug: 'following', href: '/feed' },
-  { label: 'My Interests', slug: 'my-interests', href: '/feed' },
-] as const;
+export type FeedTab = 'explore' | 'following' | 'interests';
+
+const TABS: { value: FeedTab; label: string }[] = [
+  { value: 'explore', label: 'Explore' },
+  { value: 'following', label: 'Following' },
+  { value: 'interests', label: 'My Interests' },
+];
 
 type Theme = 'light' | 'dark';
 
@@ -16,11 +19,13 @@ interface FeedNavProps {
 }
 
 /**
- * Feed top nav: Threads-inspired minimal design
+ * Feed top nav: Threads-inspired minimal design with functional tab switching
  */
 export function FeedNav({ theme = 'light' }: FeedNavProps) {
-  const activeSlug = 'for-you';
-  const isDark = theme === 'dark';
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = (searchParams.get('tab') as FeedTab) ?? 'explore';
+  const base = pathname ?? '/';
 
   return (
     <nav 
@@ -42,11 +47,12 @@ export function FeedNav({ theme = 'light' }: FeedNavProps) {
         <div className="flex items-center justify-between px-4">
           <div className="flex flex-1 -mx-2">
             {TABS.map((tab) => {
-              const isActive = activeSlug === tab.slug;
+              const isActive = currentTab === tab.value;
+              const href = tab.value === 'explore' ? base : `${base}?tab=${tab.value}`;
               return (
                 <Link
-                  key={tab.slug}
-                  href={tab.href}
+                  key={tab.value}
+                  href={href}
                   className="relative flex flex-1 items-center justify-center py-3.5 px-2 text-sm font-semibold transition-colors"
                   aria-current={isActive ? 'page' : undefined}
                 >
