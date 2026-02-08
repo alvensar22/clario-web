@@ -54,27 +54,27 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
           />
         </Link>
         <div className="min-w-0 flex-1">
-          {/* Threads-style: @username · time · interest */}
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <Link href={`/profile/${username}`} className={`${linkClass} text-[15px]`}>
-              @{username}
-            </Link>
-            <span className="text-neutral-500">·</span>
-            <span className="text-[13px] text-neutral-500">{timeAgo}</span>
-            {interestName && (
-              <>
-                <span className="text-neutral-500">·</span>
-                <span className={tagClass}>{interestName}</span>
-              </>
-            )}
+          {/* Top row: author line left, 3-dots menu upper right */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+              <Link href={`/profile/${username}`} className={`${linkClass} text-[15px]`}>
+                @{username}
+              </Link>
+              <span className="text-neutral-500">·</span>
+              <span className="text-[13px] text-neutral-500">{timeAgo}</span>
+              {interestName && (
+                <>
+                  <span className="text-neutral-500">·</span>
+                  <span className={tagClass}>{interestName}</span>
+                </>
+              )}
+            </div>
             {isOwnPost && (
-              <span className="ml-1">
-                <PostCardMenu
-                  post={post}
-                  variant={variant}
-                  onDelete={onDelete}
-                />
-              </span>
+              <PostCardMenu
+                post={post}
+                variant={variant}
+                onDelete={onDelete}
+              />
             )}
           </div>
           <p className={`${contentClass} text-[15px] leading-[1.4] mt-0.5`}>{post.content}</p>
