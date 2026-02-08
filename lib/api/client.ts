@@ -21,6 +21,7 @@ import type {
   ApiFollowListResponse,
   ApiComment,
   ApiSearchResult,
+  ApiActivityResponse,
 } from '@/lib/api/types';
 
 const getBaseUrl = (): string => {
@@ -253,6 +254,12 @@ export const api = {
     if (!trimmed) return { data: { users: [], interests: [], posts: [] }, status: 200 };
     return fetchApi<ApiSearchResult>(
       `/api/search?q=${encodeURIComponent(trimmed)}`
+    );
+  },
+
+  async getActivity(limit = 10, offset = 0): Promise<ApiResult<ApiActivityResponse>> {
+    return fetchApi<ApiActivityResponse>(
+      `/api/activity?limit=${limit}&offset=${offset}`
     );
   },
 };

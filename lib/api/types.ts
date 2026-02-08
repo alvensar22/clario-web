@@ -161,3 +161,34 @@ export interface ApiSearchResult {
   interests: ApiInterest[];
   posts: ApiPost[];
 }
+
+/** Activity item: only actions you did (like, comment, follow) */
+export type ApiActivityItem =
+  | {
+      type: 'like';
+      id: string;
+      created_at: string;
+      post_id: string;
+      post: { id: string; content: string; author: { username: string | null; avatar_url: string | null } };
+    }
+  | {
+      type: 'comment';
+      id: string;
+      created_at: string;
+      post_id: string;
+      comment_id: string;
+      comment_content: string;
+      post: { id: string; content: string; author: { username: string | null; avatar_url: string | null } };
+    }
+  | {
+      type: 'follow';
+      id: string;
+      created_at: string;
+      user: { id: string; username: string | null; avatar_url: string | null };
+    };
+
+/** Response from GET /api/activity */
+export interface ApiActivityResponse {
+  activity: ApiActivityItem[];
+  hasMore: boolean;
+}

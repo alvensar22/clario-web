@@ -18,6 +18,7 @@ import type {
   ApiFollowStatus,
   ApiComment,
   ApiSearchResult,
+  ApiActivityResponse,
 } from '@/lib/api/types';
 import { cookies } from 'next/headers';
 
@@ -182,6 +183,13 @@ export async function getApiClient() {
       if (!trimmed) return { data: { users: [], interests: [], posts: [] }, status: 200 };
       return fetchApi<ApiSearchResult>(
         `/api/search?q=${encodeURIComponent(trimmed)}`,
+        { cookieHeader }
+      );
+    },
+
+    async getActivity(limit = 10, offset = 0): Promise<ApiResult<ApiActivityResponse>> {
+      return fetchApi<ApiActivityResponse>(
+        `/api/activity?limit=${limit}&offset=${offset}`,
         { cookieHeader }
       );
     },
