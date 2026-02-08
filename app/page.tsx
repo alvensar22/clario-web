@@ -2,6 +2,7 @@ import { getApiClient } from '@/lib/api/server';
 import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { TopNav, type FeedTab } from '@/components/layout/top-nav';
+import { AuthHeader, LogoIcon } from '@/components/layout/auth-header';
 import { FeedList } from '@/components/feed/feed-list';
 import { FeedEmpty } from '@/components/feed/feed-empty';
 import { Button } from '@/components/ui/button';
@@ -21,17 +22,9 @@ export default async function Home({ searchParams }: HomePageProps) {
   if (!session?.user) {
     return (
       <div className="min-h-screen bg-black">
-        {/* Header */}
-        <header className="border-b border-neutral-800">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <span className="text-xl font-bold text-white">clario</span>
-            </div>
-            <div className="flex items-center gap-3">
+        <AuthHeader
+          rightContent={
+            <>
               <Link href="/login">
                 <Button variant="secondary" className="px-6">
                   Log in
@@ -42,18 +35,15 @@ export default async function Home({ searchParams }: HomePageProps) {
                   Sign up
                 </Button>
               </Link>
-            </div>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         {/* Hero Section */}
         <main className="mx-auto max-w-7xl px-6">
           <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center py-16 text-center">
             <div className="mb-8 flex items-center justify-center">
-              <svg className="h-24 w-24 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
+              <LogoIcon className="h-24 w-24 text-white" />
             </div>
             
             <h1 className="mb-6 text-6xl font-bold tracking-tight text-white sm:text-7xl">
