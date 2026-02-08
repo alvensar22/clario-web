@@ -122,6 +122,10 @@ export async function getApiClient() {
       return fetchApi<{ posts: ApiPost[] }>(url, { cookieHeader });
     },
 
+    async getPost(postId: string): Promise<ApiResult<ApiPost>> {
+      return fetchApi<ApiPost>(`/api/posts/${encodeURIComponent(postId)}`, { cookieHeader });
+    },
+
     async createPost(body: ApiCreatePostBody): Promise<ApiResult<ApiPost>> {
       return fetchApi<ApiPost>('/api/posts', {
         method: 'POST',

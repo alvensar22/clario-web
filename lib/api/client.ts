@@ -150,6 +150,10 @@ export const api = {
     return fetchApi<{ posts: ApiPost[] }>(url);
   },
 
+  async getPost(postId: string): Promise<ApiResult<ApiPost>> {
+    return fetchApi<ApiPost>(`/api/posts/${encodeURIComponent(postId)}`);
+  },
+
   async createPost(body: ApiCreatePostBody): Promise<ApiResult<ApiPost>> {
     return fetchApi<ApiPost>('/api/posts', {
       method: 'POST',
