@@ -49,7 +49,7 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
     <div className="min-h-screen bg-black">
       <Sidebar username={session?.user?.id === userProfile.id ? userProfile.username : undefined} />
       <TopNav />
-      <main className="ml-20 pt-14">
+      <main className="ml-56 pt-14">
         <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-10">
           <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start sm:gap-10">

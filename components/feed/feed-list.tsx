@@ -22,7 +22,7 @@ export function FeedList({ posts, currentUserId }: FeedListProps) {
   }
 
   return (
-    <ul className="divide-y divide-neutral-800/80">
+    <ul className="divide-y divide-neutral-800/60">
       {posts.map((post) => (
         <li key={post.id}>
           <PostCard

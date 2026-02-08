@@ -6,8 +6,8 @@ export default function FeedLoading() {
     <div className="min-h-screen bg-black">
       <Sidebar />
       <TopNav />
-      <main className="ml-20 pt-14">
-        <div className="mx-auto max-w-2xl border-x border-neutral-800">
+      <main className="ml-56 pt-14">
+        <div className="mx-auto max-w-[600px] border-x border-neutral-800/80">
           <div className="divide-y divide-neutral-800/80">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex gap-3 p-4">

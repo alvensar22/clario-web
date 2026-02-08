@@ -1,6 +1,7 @@
 'use client';
 
 import type { ApiPost } from '@/lib/api/types';
+import { formatRelativeTime } from '@/lib/utils';
 import { Avatar } from '@/components/avatar/avatar';
 import { ImagePreview } from '@/components/ui/image-preview';
 import Image from 'next/image';
@@ -40,8 +41,10 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
     ? 'rounded-lg border border-neutral-200 dark:border-neutral-800'
     : 'rounded-lg border border-neutral-800';
 
+  const timeAgo = formatRelativeTime(post.created_at);
+
   return (
-    <article className="p-4 transition-colors hover:bg-neutral-900/30 dark:hover:bg-neutral-900/20">
+    <article className="px-4 py-3 transition-colors hover:bg-neutral-900/20">
       <div className="flex gap-3">
         <Link href={`/profile/${username}`} className="shrink-0 ring-offset-black focus-visible:rounded-full focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2">
           <Avatar
@@ -51,20 +54,30 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
           />
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/profile/${username}`} className={linkClass}>
+          {/* Threads-style: @username · time · interest */}
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <Link href={`/profile/${username}`} className={`${linkClass} text-[15px]`}>
               @{username}
             </Link>
-            {interestName && <span className={tagClass}>{interestName}</span>}
+            <span className="text-neutral-500">·</span>
+            <span className="text-[13px] text-neutral-500">{timeAgo}</span>
+            {interestName && (
+              <>
+                <span className="text-neutral-500">·</span>
+                <span className={tagClass}>{interestName}</span>
+              </>
+            )}
             {isOwnPost && (
-              <PostCardMenu
-                post={post}
-                variant={variant}
-                onDelete={onDelete}
-              />
+              <span className="ml-1">
+                <PostCardMenu
+                  post={post}
+                  variant={variant}
+                  onDelete={onDelete}
+                />
+              </span>
             )}
           </div>
-          <p className={contentClass}>{post.content}</p>
+          <p className={`${contentClass} text-[15px] leading-[1.4] mt-0.5`}>{post.content}</p>
           {post.media_url && (
             <>
               <button

@@ -19,7 +19,7 @@ export default async function CreatePostPage() {
     <div className="min-h-screen bg-black">
       <Sidebar username={me.username} />
       <TopNav />
-      <main className="ml-20 pt-14">
+      <main className="ml-56 pt-14">
         <div className="mx-auto max-w-2xl px-4 py-8">
           <PostComposer
             currentUser={{ username: me.username, avatar_url: me.avatar_url }}

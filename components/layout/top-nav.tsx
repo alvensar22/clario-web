@@ -1,7 +1,7 @@
 'use client';
 
-import { useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 
 export type FeedTab = 'explore' | 'following' | 'interests';
@@ -39,21 +39,12 @@ export function TopNav() {
   }, [isOpen]);
 
   return (
-    <header className="fixed left-20 right-0 top-0 z-30 border-b border-neutral-800 bg-black/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
-        {/* Empty left side for balance */}
-        <div className="w-32" />
-
-        {/* Center: Logo */}
-        <Link href="/" className="text-xl font-bold text-white hover:text-neutral-300 transition-colors">
-          clario
-        </Link>
-
-        {/* Right: Feed Selector Dropdown */}
-        <div className="relative w-32 flex justify-end" ref={dropdownRef}>
+    <header className="fixed left-56 right-0 top-0 z-30 border-b border-neutral-800/80 bg-black/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[600px] items-center justify-center px-4">
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900/50 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+            className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800/80"
           >
             {currentOption.label}
             <svg
@@ -68,7 +59,7 @@ export function TopNav() {
           </button>
 
           {isOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 shadow-xl">
+            <div className="absolute left-1/2 top-full mt-1.5 w-52 -translate-x-1/2 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 shadow-xl">
               {FEED_OPTIONS.map((option) => {
                 const href = option.value === 'explore' ? base : `${base}?tab=${option.value}`;
                 const isActive = currentTab === option.value;
@@ -77,9 +68,9 @@ export function TopNav() {
                     key={option.value}
                     href={href}
                     onClick={() => setIsOpen(false)}
-                    className={`flex items-center justify-between px-4 py-3 text-sm transition-colors ${
+                    className={`flex items-center justify-between px-4 py-2.5 text-[15px] transition-colors ${
                       isActive
-                        ? 'bg-neutral-800 text-white font-medium'
+                        ? 'bg-neutral-800/80 text-white font-medium'
                         : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'
                     }`}
                   >

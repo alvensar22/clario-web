@@ -6,12 +6,18 @@ import { Avatar } from '@/components/avatar/avatar';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
 
+const MAX_LENGTH = 500;
+const TEXTAREA_MIN_ROWS = 1;
+const TEXTAREA_MAX_ROWS = 8;
+
 interface PostComposerProps {
   currentUser: { username: string; avatar_url: string | null };
   interests: ApiInterest[];
+  /** When provided, called after successful post instead of redirecting to /feed */
+  onSuccess?: () => void;
 }
 
-export function PostComposer({ currentUser, interests }: PostComposerProps) {
+export function PostComposer({ currentUser, interests, onSuccess }: PostComposerProps) {
   const router = useRouter();
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
@@ -21,8 +27,11 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
   const [error, setError] = useState<string | null>(null);
   const [aiDetecting, setAiDetecting] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
+  const [showInterestDropdown, setShowInterestDropdown] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const interestDropdownRef = useRef<HTMLDivElement>(null);
 
   // AI interest detection with debounce
   useEffect(() => {
@@ -65,6 +74,33 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
     };
   }, [content, interestId]);
 
+  // Close interest dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (interestDropdownRef.current && !interestDropdownRef.current.contains(e.target as Node)) {
+        setShowInterestDropdown(false);
+      }
+    };
+    if (showInterestDropdown) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showInterestDropdown]);
+
+  // Auto-resize textarea (Threads-style single line that grows)
+  const adjustTextareaHeight = () => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    const lineHeight = 24;
+    const minHeight = lineHeight * TEXTAREA_MIN_ROWS;
+    const maxHeight = lineHeight * TEXTAREA_MAX_ROWS;
+    const newHeight = Math.min(Math.max(ta.scrollHeight, minHeight), maxHeight);
+    ta.style.height = `${newHeight}px`;
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [content]);
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -87,7 +123,7 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = content.trim();
-    if (!trimmed) return;
+    if (!trimmed || posting) return;
     setError(null);
     setPosting(true);
     const { error: err } = await api.createPost({
@@ -95,19 +131,38 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
       media_url: mediaUrl ?? undefined,
       interest_id: interestId ?? undefined,
     });
-    setPosting(false);
     if (err) {
       setError(err);
+      setPosting(false);
       return;
     }
-    router.push('/feed');
-    router.refresh();
+    // Success: clear form when staying on page (e.g. feed); redirect otherwise
+    if (onSuccess) {
+      setContent('');
+      setMediaUrl(null);
+      setInterestId(null);
+      setAiSuggested(false);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '24px';
+      }
+      onSuccess();
+      router.refresh();
+    } else {
+      router.push('/feed');
+      router.refresh();
+    }
+    setPosting(false);
   };
 
+  const selectedInterest = interests.find((i) => i.id === interestId);
+  const nearLimit = content.length >= MAX_LENGTH * 0.9;
+  const atLimit = content.length >= MAX_LENGTH;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex gap-4">
-        <div className="shrink-0 pt-1">
+    <form onSubmit={handleSubmit} className="py-1">
+      {/* Threads-style: avatar + single-line input that grows */}
+      <div className="flex gap-3">
+        <div className="shrink-0 pt-0.5">
           <Avatar
             src={currentUser.avatar_url ?? undefined}
             fallback={currentUser.username}
@@ -116,26 +171,28 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
         </div>
         <div className="min-w-0 flex-1">
           <textarea
+            ref={textareaRef}
             name="content"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="What do you want to share?"
-            rows={4}
-            maxLength={2000}
-            className="w-full resize-none border-0 bg-transparent text-white placeholder:text-neutral-500 focus:outline-none focus:ring-0"
+            onChange={(e) => setContent(e.target.value.slice(0, MAX_LENGTH))}
+            placeholder="Start a thread..."
+            rows={TEXTAREA_MIN_ROWS}
+            maxLength={MAX_LENGTH}
+            className="min-h-[24px] w-full resize-none overflow-y-auto border-0 bg-transparent text-[15px] leading-6 text-white placeholder:text-neutral-500 focus:outline-none focus:ring-0"
             required
+            onFocus={adjustTextareaHeight}
           />
           {mediaUrl && (
-            <div className="relative mt-3 inline-block">
+            <div className="relative mt-2 inline-block overflow-hidden rounded-xl">
               <img
                 src={mediaUrl}
                 alt="Upload"
-                className="max-h-64 rounded-lg border border-neutral-800 object-cover"
+                className="max-h-72 rounded-xl border border-neutral-800 object-cover"
               />
               <button
                 type="button"
                 onClick={() => setMediaUrl(null)}
-                className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
+                className="absolute right-2 top-2 rounded-full bg-black/70 p-1.5 text-white hover:bg-black/90"
                 aria-label="Remove image"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -147,73 +204,123 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-neutral-800 pt-4">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="hidden"
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white disabled:opacity-50"
-          aria-label="Add image"
-        >
-          {uploading ? (
-            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-neutral-500 border-t-white" />
-          ) : (
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-            </svg>
-          )}
-        </button>
-        <div className="relative flex items-center gap-2">
-          <select
-            value={interestId ?? ''}
-            onChange={(e) => {
-              setInterestId(e.target.value || null);
-              setAiSuggested(false);
-            }}
-            className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+      {/* Toolbar: icon actions + interest + Post */}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white disabled:opacity-50"
+            aria-label="Add photo"
           >
-            <option value="">Interest</option>
-            {interests.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.name}
-              </option>
-            ))}
-          </select>
-          {aiDetecting && (
-            <span className="flex items-center gap-1.5 text-xs text-neutral-500">
-              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-neutral-700 border-t-neutral-400" />
-              AI detecting...
-            </span>
-          )}
-          {aiSuggested && !aiDetecting && (
-            <span className="flex items-center gap-1 rounded-full bg-purple-500/20 px-2 py-1 text-xs text-purple-400">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+            {uploading ? (
+              <span className="block h-5 w-5 animate-spin rounded-full border-2 border-neutral-600 border-t-white" />
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
               </svg>
-              AI suggested
+            )}
+          </button>
+
+          {/* Interest: pill dropdown */}
+          <div className="relative" ref={interestDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowInterestDropdown((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px] transition-colors ${
+                selectedInterest
+                  ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                  : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-400'
+              }`}
+            >
+              {aiDetecting ? (
+                <span className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-neutral-600 border-t-neutral-400" />
+                  <span>...</span>
+                </span>
+              ) : selectedInterest ? (
+                <>
+                  {aiSuggested && (
+                    <svg className="h-3 w-3 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+                    </svg>
+                  )}
+                  <span>{selectedInterest.name}</span>
+                </>
+              ) : (
+                <span>Topic</span>
+              )}
+              <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showInterestDropdown && (
+              <div className="absolute left-0 top-full z-10 mt-1 max-h-48 min-w-[140px] overflow-auto rounded-xl border border-neutral-800 bg-neutral-950 py-1 shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInterestId(null);
+                    setAiSuggested(false);
+                    setShowInterestDropdown(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-[13px] text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                >
+                  None
+                </button>
+                {interests.map((i) => (
+                  <button
+                    key={i.id}
+                    type="button"
+                    onClick={() => {
+                      setInterestId(i.id);
+                      setAiSuggested(false);
+                      setShowInterestDropdown(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-[13px] hover:bg-neutral-800 ${
+                      interestId === i.id ? 'font-medium text-white' : 'text-neutral-400'
+                    }`}
+                  >
+                    {i.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {nearLimit && (
+            <span className={`text-[12px] ${atLimit ? 'text-red-400' : 'text-neutral-500'}`}>
+              {content.length}/{MAX_LENGTH}
             </span>
           )}
-        </div>
-        <div className="ml-auto">
           <button
             type="submit"
             disabled={!content.trim() || posting}
-            className="rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-[14px] font-semibold text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {posting ? 'Posting…' : 'Post'}
+            {posting ? (
+              <>
+                <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-neutral-400 border-t-black" />
+                <span>Posting…</span>
+              </>
+            ) : (
+              'Post'
+            )}
           </button>
         </div>
       </div>
 
       {error && (
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="mt-2 text-[13px] text-red-400">{error}</p>
       )}
     </form>
   );
