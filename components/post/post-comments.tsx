@@ -3,6 +3,7 @@
 import { api } from '@/lib/api/client';
 import type { ApiComment } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { useCallback, useEffect, useState } from 'react';
 
 interface PostCommentsProps {
@@ -17,6 +18,7 @@ export function PostComments({ postId, variant = 'feed', onCommentAdded }: PostC
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,14 +54,64 @@ export function PostComments({ postId, variant = 'feed', onCommentAdded }: PostC
     ? 'font-medium text-neutral-900 dark:text-neutral-100'
     : 'font-medium text-white';
 
+  const limit = 5;
+  const displayComments = showAll ? comments : comments.slice(0, limit);
+  const hasMore = !showAll && comments.length > limit;
+  const moreCount = comments.length - limit;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      {/* Comments list: 5 by default, scrollable; show all when "more" clicked */}
+      {loading ? (
+        <p className="text-sm text-neutral-500">Loading comments…</p>
+      ) : displayComments.length === 0 ? (
+        <p className="text-sm text-neutral-500">No comments yet.</p>
+      ) : (
+        <ul className="max-h-[220px] space-y-3 overflow-y-auto pr-1">
+          {displayComments.map((c) => (
+            <li key={c.id} className="flex gap-2">
+              <Avatar
+                src={c.author?.avatar_url ?? undefined}
+                fallback={c.author?.username ?? '?'}
+                size="sm"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  <span className={authorClass}>@{c.author?.username ?? 'unknown'}</span>
+                  <span className="text-neutral-500">·</span>
+                  <RelativeTime isoDate={c.created_at} className="text-[12px] text-neutral-500" />
+                </div>
+                <p className={`mt-0.5 whitespace-pre-wrap text-sm ${isProfile ? 'text-neutral-600 dark:text-neutral-400' : 'text-neutral-300'}`}>{c.content}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="text-xs text-neutral-500 hover:text-neutral-300 hover:underline"
+        >
+          {moreCount} more comment{moreCount !== 1 ? 's' : ''}
+        </button>
+      )}
+      {showAll && comments.length > limit && (
+        <button
+          type="button"
+          onClick={() => setShowAll(false)}
+          className="text-xs text-neutral-500 hover:text-neutral-300 hover:underline"
+        >
+          Show less
+        </button>
+      )}
+      {/* Comment textbox below */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
-        className="flex gap-2"
+        className="flex gap-2 pt-1"
       >
         <input
           type="text"
@@ -77,27 +129,6 @@ export function PostComments({ postId, variant = 'feed', onCommentAdded }: PostC
           {submitting ? '…' : 'Post'}
         </button>
       </form>
-      {loading ? (
-        <p className="text-sm text-neutral-500">Loading comments…</p>
-      ) : comments.length === 0 ? (
-        <p className="text-sm text-neutral-500">No comments yet.</p>
-      ) : (
-        <ul className="space-y-3">
-          {comments.map((c) => (
-            <li key={c.id} className="flex gap-2">
-              <Avatar
-                src={c.author?.avatar_url ?? undefined}
-                fallback={c.author?.username ?? '?'}
-                size="sm"
-              />
-              <div className="min-w-0 flex-1">
-                <span className={authorClass}>@{c.author?.username ?? 'unknown'}</span>
-                <p className={`mt-0.5 whitespace-pre-wrap text-sm ${isProfile ? 'text-neutral-600 dark:text-neutral-400' : 'text-neutral-300'}`}>{c.content}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
