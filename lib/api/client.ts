@@ -20,6 +20,7 @@ import type {
   ApiFollowStatus,
   ApiFollowListResponse,
   ApiComment,
+  ApiSearchResult,
 } from '@/lib/api/types';
 
 const getBaseUrl = (): string => {
@@ -245,5 +246,13 @@ export const api = {
     return fetchApi<{ success: boolean }>(`/api/posts/${encodeURIComponent(postId)}`, {
       method: 'DELETE',
     });
+  },
+
+  async search(q: string): Promise<ApiResult<ApiSearchResult>> {
+    const trimmed = q?.trim() ?? '';
+    if (!trimmed) return { data: { users: [], interests: [], posts: [] }, status: 200 };
+    return fetchApi<ApiSearchResult>(
+      `/api/search?q=${encodeURIComponent(trimmed)}`
+    );
   },
 };

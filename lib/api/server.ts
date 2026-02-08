@@ -17,6 +17,7 @@ import type {
   ApiCreatePostBody,
   ApiFollowStatus,
   ApiComment,
+  ApiSearchResult,
 } from '@/lib/api/types';
 import { cookies } from 'next/headers';
 
@@ -174,6 +175,15 @@ export async function getApiClient() {
         method: 'DELETE',
         cookieHeader,
       });
+    },
+
+    async search(q: string): Promise<ApiResult<ApiSearchResult>> {
+      const trimmed = q?.trim() ?? '';
+      if (!trimmed) return { data: { users: [], interests: [], posts: [] }, status: 200 };
+      return fetchApi<ApiSearchResult>(
+        `/api/search?q=${encodeURIComponent(trimmed)}`,
+        { cookieHeader }
+      );
     },
   };
 }

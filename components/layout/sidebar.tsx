@@ -59,7 +59,7 @@ export function Sidebar({ username }: SidebarProps) {
         {/* Logo */}
         <Link
           href="/"
-          className="mb-6 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-neutral-900/80"
+          className="mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-neutral-900/80"
         >
           <svg className="h-7 w-7 text-white" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
@@ -67,6 +67,24 @@ export function Sidebar({ username }: SidebarProps) {
           </svg>
           <span className="text-xl font-bold text-white">clario</span>
         </Link>
+
+        {/* Search: navigates to /search?q=... */}
+        <form action="/search" method="get" className="mb-4">
+          <div className="relative">
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-500">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              name="q"
+              placeholder="Search"
+              className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 py-2 pl-8 pr-3 text-sm text-white placeholder:text-neutral-500 focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+              aria-label="Search people, topics, posts"
+            />
+          </div>
+        </form>
 
         {/* Navigation */}
         <nav className="flex flex-1 flex-col gap-0.5">

@@ -147,3 +147,17 @@ export interface ApiAiDetectInterestResponse {
   interest_name: string | null;
   confidence: number;
 }
+
+/** One user in GET /api/search response */
+export interface ApiSearchUser {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+/** Response from GET /api/search */
+export interface ApiSearchResult {
+  users: ApiSearchUser[];
+  interests: ApiInterest[];
+  posts: ApiPost[];
+}
