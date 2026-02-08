@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { api } from '@/lib/api/client';
 
 interface SidebarProps {
   username?: string;
@@ -9,6 +11,9 @@ interface SidebarProps {
 
 export function Sidebar({ username }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const navItems = [
     { href: '/', icon: 'home', label: 'Home' },
@@ -22,6 +27,29 @@ export function Sidebar({ username }: SidebarProps) {
     if (href === '/') return pathname === '/';
     if (href.startsWith('/profile/')) return pathname.startsWith('/profile/');
     return pathname.startsWith(href);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
+  const handleLogout = async () => {
+    await api.signOut();
+    router.push('/login');
+    router.refresh();
   };
 
   return (
@@ -81,14 +109,38 @@ export function Sidebar({ username }: SidebarProps) {
         </nav>
 
         {/* Menu at bottom */}
-        <button
-          className="flex h-12 w-12 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
-          aria-label="Menu"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className={`flex h-12 w-12 items-center justify-center rounded-lg transition-colors ${
+              showMenu
+                ? 'bg-neutral-900 text-white'
+                : 'text-neutral-500 hover:bg-neutral-900 hover:text-white'
+            }`}
+            aria-label="Menu"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          {/* Dropdown Menu */}
+          {showMenu && (
+            <div className="absolute bottom-0 left-20 mb-0 ml-2 w-48 rounded-lg border border-neutral-800 bg-neutral-950 shadow-lg">
+              <div className="py-1">
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-neutral-300 transition-colors hover:bg-neutral-900 hover:text-white"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span>Log out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
