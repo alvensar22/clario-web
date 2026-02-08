@@ -34,6 +34,16 @@ async function getPostsWithMeta(
           return counts;
         })
       : Promise.resolve(new Map<string, number>());
+  const commentCountPromise =
+    postIds.length > 0
+      ? supabase.from('comments').select('post_id').in('post_id', postIds).then((r) => {
+          const counts = new Map<string, number>();
+          (r.data ?? []).forEach((row: { post_id: string }) => {
+            counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+          });
+          return counts;
+        })
+      : Promise.resolve(new Map<string, number>());
   const likedSetPromise =
     currentUserId && postIds.length > 0
       ? supabase
@@ -44,7 +54,7 @@ async function getPostsWithMeta(
           .then((r) => new Set((r.data ?? []).map((x: { post_id: string }) => x.post_id)))
       : Promise.resolve(new Set<string>());
 
-  const [usersRes, interestsRes, likeCounts, likedSet] = await Promise.all([
+  const [usersRes, interestsRes, likeCounts, commentCounts, likedSet] = await Promise.all([
     userIds.length > 0
       ? supabase.from('users').select('id, username, avatar_url').in('id', userIds)
       : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] },
@@ -52,6 +62,7 @@ async function getPostsWithMeta(
       ? supabase.from('interests').select('id, name').in('id', interestIds)
       : { data: [] as { id: string; name: string }[] },
     likeCountPromise,
+    commentCountPromise,
     likedSetPromise,
   ]);
 
@@ -67,6 +78,7 @@ async function getPostsWithMeta(
     author: usersMap.get(p.user_id),
     interest: p.interest_id ? interestsMap.get(p.interest_id) ?? null : null,
     like_count: likeCounts.get(p.id) ?? 0,
+    comment_count: commentCounts.get(p.id) ?? 0,
     liked: likedSet.has(p.id),
   });
   return { posts: rows.map(mapPost) };

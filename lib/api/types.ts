@@ -89,6 +89,7 @@ export interface ApiPost {
   author?: { username: string | null; avatar_url: string | null };
   interest?: { name: string } | null;
   like_count?: number;
+  comment_count?: number;
   liked?: boolean;
 }
 

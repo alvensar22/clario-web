@@ -8,9 +8,11 @@ import { useCallback, useEffect, useState } from 'react';
 interface PostCommentsProps {
   postId: string;
   variant?: 'feed' | 'profile';
+  /** Called after a new comment is successfully added (so parent can update count) */
+  onCommentAdded?: () => void;
 }
 
-export function PostComments({ postId, variant = 'feed' }: PostCommentsProps) {
+export function PostComments({ postId, variant = 'feed', onCommentAdded }: PostCommentsProps) {
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState('');
@@ -36,8 +38,9 @@ export function PostComments({ postId, variant = 'feed' }: PostCommentsProps) {
     if (res.data) {
       setComments((prev) => [...prev, res.data!]);
       setContent('');
+      onCommentAdded?.();
     }
-  }, [postId, content, submitting]);
+  }, [postId, content, submitting, onCommentAdded]);
 
   const isProfile = variant === 'profile';
   const inputClass =

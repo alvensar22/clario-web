@@ -67,10 +67,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
   } = await supabase.auth.getUser();
 
   const likeCounts = new Map<string, number>();
+  const commentCounts = new Map<string, number>();
   const likedSet = new Set<string>();
   if (postIds.length > 0) {
-    const [likesRes, myLikesRes] = await Promise.all([
+    const [likesRes, commentsRes, myLikesRes] = await Promise.all([
       supabase.from('likes').select('post_id').in('post_id', postIds),
+      supabase.from('comments').select('post_id').in('post_id', postIds),
       currentUser
         ? (supabase.from('likes').select('post_id').eq('user_id', currentUser.id).in('post_id', postIds) as Promise<{
             data: { post_id: string }[] | null;
@@ -79,6 +81,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
     ]);
     (likesRes.data ?? []).forEach((r: { post_id: string }) => {
       likeCounts.set(r.post_id, (likeCounts.get(r.post_id) ?? 0) + 1);
+    });
+    (commentsRes.data ?? []).forEach((r: { post_id: string }) => {
+      commentCounts.set(r.post_id, (commentCounts.get(r.post_id) ?? 0) + 1);
     });
     (myLikesRes.data ?? []).forEach((r) => likedSet.add(r.post_id));
   }
@@ -97,6 +102,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     author,
     interest: p.interest_id ? interestsMap.get(p.interest_id) ?? null : null,
     like_count: likeCounts.get(p.id) ?? 0,
+    comment_count: commentCounts.get(p.id) ?? 0,
     liked: likedSet.has(p.id),
   }));
 
