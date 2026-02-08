@@ -1,8 +1,8 @@
 'use client';
 
 import type { ApiPost } from '@/lib/api/types';
-import { formatRelativeTime } from '@/lib/utils';
 import { Avatar } from '@/components/avatar/avatar';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { ImagePreview } from '@/components/ui/image-preview';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -41,8 +41,6 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
     ? 'rounded-lg border border-neutral-200 dark:border-neutral-800'
     : 'rounded-lg border border-neutral-800';
 
-  const timeAgo = formatRelativeTime(post.created_at);
-
   return (
     <article className="px-4 py-3 transition-colors hover:bg-neutral-900/20">
       <div className="flex gap-3">
@@ -61,7 +59,7 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
                 @{username}
               </Link>
               <span className="text-neutral-500">·</span>
-              <span className="text-[13px] text-neutral-500">{timeAgo}</span>
+              <RelativeTime isoDate={post.created_at} className="text-[13px] text-neutral-500" />
               {interestName && (
                 <>
                   <span className="text-neutral-500">·</span>
