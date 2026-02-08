@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 /**
  * GET /api/auth/session
  * Returns the current user session. Used by web and mobile clients.
+ * Always returns 200; use body.user === null when not authenticated (avoids 401 in console).
  */
 export async function GET() {
   const supabase = await createClient();
@@ -12,15 +13,9 @@ export async function GET() {
     error,
   } = await supabase.auth.getUser();
 
-  if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 401 }
-    );
-  }
-
-  if (!user) {
-    return NextResponse.json({ user: null }, { status: 200 });
+  // No valid session: return 200 with null user (avoids 401 Unauthorized in console)
+  if (error || !user) {
+    return NextResponse.json({ user: null });
   }
 
   return NextResponse.json({
