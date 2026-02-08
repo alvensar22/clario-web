@@ -1,23 +1,68 @@
 'use client';
 
-import { signUp } from '@/app/actions/auth';
+import { api } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useActionState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/hooks/use-supabase';
+import { useUser } from '@/hooks/use-auth';
 
 export default function SignUpPage() {
   const { user, loading } = useUser();
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState(signUp, null);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
     if (user && !loading) {
       router.push('/');
     }
   }, [user, loading, router]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setFieldError(null);
+
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim();
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+    const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value;
+
+    if (!email?.includes('@')) {
+      setError('Please enter a valid email address');
+      setFieldError('email');
+      return;
+    }
+    if (!password) {
+      setError('Password is required');
+      setFieldError('password');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setFieldError('password');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setFieldError('confirmPassword');
+      return;
+    }
+
+    setIsPending(true);
+    const { error: err } = await api.signUp(email, password);
+    setIsPending(false);
+
+    if (err) {
+      setError(err);
+      return;
+    }
+    router.push('/onboarding');
+    router.refresh();
+  }
 
   if (loading) {
     return (
@@ -39,11 +84,82 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        <SignUpForm
-          formAction={formAction}
-          state={state}
-          isPending={isPending}
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
+            >
+              Email
+            </label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+              autoFocus
+              error={fieldError === 'email'}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
+            >
+              Password
+            </label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              autoComplete="new-password"
+              minLength={6}
+              error={fieldError === 'password'}
+            />
+            <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+              Must be at least 6 characters
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
+            >
+              Confirm Password
+            </label>
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              placeholder="••••••••"
+              required
+              autoComplete="new-password"
+              minLength={6}
+              error={fieldError === 'confirmPassword'}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            variant="primary"
+            isLoading={isPending}
+          >
+            Create account
+          </Button>
+        </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -58,100 +174,5 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-interface SignUpFormProps {
-  formAction: (formData: FormData) => void;
-  state: { message?: string; field?: string; success?: boolean } | null;
-  isPending: boolean;
-}
-
-function SignUpForm({ formAction, state, isPending }: SignUpFormProps) {
-  const router = useRouter();
-
-  useEffect(() => {
-    if (state?.success) {
-      router.push('/onboarding');
-    }
-  }, [state?.success, router]);
-
-  return (
-    <form action={formAction} className="space-y-4">
-      {state?.message && !state.success && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400">
-          {state.message}
-        </div>
-      )}
-
-      <div>
-        <label
-          htmlFor="email"
-          className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
-        >
-          Email
-        </label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="you@example.com"
-          required
-          autoComplete="email"
-          autoFocus
-          error={state?.field === 'email'}
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="password"
-          className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
-        >
-          Password
-        </label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="••••••••"
-          required
-          autoComplete="new-password"
-          minLength={6}
-          error={state?.field === 'password'}
-        />
-        <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-          Must be at least 6 characters
-        </p>
-      </div>
-
-      <div>
-        <label
-          htmlFor="confirmPassword"
-          className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
-        >
-          Confirm Password
-        </label>
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          placeholder="••••••••"
-          required
-          autoComplete="new-password"
-          minLength={6}
-          error={state?.field === 'confirmPassword'}
-        />
-      </div>
-
-      <Button
-        type="submit"
-        className="w-full"
-        variant="primary"
-        isLoading={isPending}
-      >
-        Create account
-      </Button>
-    </form>
   );
 }
