@@ -139,3 +139,10 @@ export interface ApiUpdatePostBody {
 export interface ApiPostUploadResponse {
   url: string;
 }
+
+/** Response from POST /api/ai/detect-interest */
+export interface ApiAiDetectInterestResponse {
+  interest_id: string | null;
+  interest_name: string | null;
+  confidence: number;
+}

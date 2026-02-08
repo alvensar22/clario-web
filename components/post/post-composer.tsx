@@ -4,7 +4,7 @@ import { api } from '@/lib/api/client';
 import type { ApiInterest } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 interface PostComposerProps {
   currentUser: { username: string; avatar_url: string | null };
@@ -19,7 +19,51 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiDetecting, setAiDetecting] = useState(false);
+  const [aiSuggested, setAiSuggested] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // AI interest detection with debounce
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    const trimmed = content.trim();
+    if (trimmed.length < 20) {
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      setAiDetecting(true);
+      try {
+        const response = await fetch('/api/ai/detect-interest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: trimmed }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.interest_id && data.confidence >= 0.6 && !interestId) {
+            setInterestId(data.interest_id);
+            setAiSuggested(true);
+          }
+        }
+      } catch (err) {
+        console.error('AI detection failed:', err);
+      } finally {
+        setAiDetecting(false);
+      }
+    }, 1500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [content, interestId]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,18 +170,37 @@ export function PostComposer({ currentUser, interests }: PostComposerProps) {
             </svg>
           )}
         </button>
-        <select
-          value={interestId ?? ''}
-          onChange={(e) => setInterestId(e.target.value || null)}
-          className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
-        >
-          <option value="">Interest</option>
-          {interests.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative flex items-center gap-2">
+          <select
+            value={interestId ?? ''}
+            onChange={(e) => {
+              setInterestId(e.target.value || null);
+              setAiSuggested(false);
+            }}
+            className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+          >
+            <option value="">Interest</option>
+            {interests.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name}
+              </option>
+            ))}
+          </select>
+          {aiDetecting && (
+            <span className="flex items-center gap-1.5 text-xs text-neutral-500">
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-neutral-700 border-t-neutral-400" />
+              AI detecting...
+            </span>
+          )}
+          {aiSuggested && !aiDetecting && (
+            <span className="flex items-center gap-1 rounded-full bg-purple-500/20 px-2 py-1 text-xs text-purple-400">
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+              </svg>
+              AI suggested
+            </span>
+          )}
+        </div>
         <div className="ml-auto">
           <button
             type="submit"
