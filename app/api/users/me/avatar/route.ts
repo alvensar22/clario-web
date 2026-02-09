@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import type { UsersUpdate } from '@/types/supabase';
 import { NextResponse } from 'next/server';
 
@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
  * Upload avatar. Body: multipart/form-data with "avatar" file.
  */
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,
@@ -82,8 +82,8 @@ export async function POST(request: Request) {
 /**
  * DELETE /api/users/me/avatar
  */
-export async function DELETE() {
-  const supabase = await createClient();
+export async function DELETE(request: Request) {
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

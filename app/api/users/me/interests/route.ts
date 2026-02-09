@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import type { UserInterestsInsert } from '@/types/supabase';
 import { NextResponse } from 'next/server';
 
@@ -6,8 +6,8 @@ import { NextResponse } from 'next/server';
  * GET /api/users/me/interests
  * Returns the current user's selected interest IDs. Requires authentication.
  */
-export async function GET() {
-  const supabase = await createClient();
+export async function GET(request: Request) {
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,
@@ -42,7 +42,7 @@ export async function GET() {
  * Body: { interestIds: string[] }
  */
 export async function PUT(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

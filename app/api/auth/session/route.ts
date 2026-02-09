@@ -1,13 +1,14 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 /**
  * GET /api/auth/session
  * Returns the current user session. Used by web and mobile clients.
+ * Supports cookie auth (web) or Authorization: Bearer <token> (mobile).
  * Always returns 200; use body.user === null when not authenticated (avoids 401 in console).
  */
-export async function GET() {
-  const supabase = await createClient();
+export async function GET(request: Request) {
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error,

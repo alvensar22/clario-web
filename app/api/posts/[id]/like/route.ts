@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -9,11 +9,11 @@ interface RouteParams {
  * GET /api/posts/[id]/like
  * Returns { count, liked } for the post.
  */
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -37,11 +37,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
  * POST /api/posts/[id]/like
  * Like the post. Auth required.
  */
-export async function POST(_request: Request, { params }: RouteParams) {
+export async function POST(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,
@@ -72,11 +72,11 @@ export async function POST(_request: Request, { params }: RouteParams) {
  * DELETE /api/posts/[id]/like
  * Unlike the post. Auth required.
  */
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

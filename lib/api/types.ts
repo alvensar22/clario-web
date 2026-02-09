@@ -6,6 +6,9 @@
 /** Current session from GET /api/auth/session and sign-in/up responses */
 export interface ApiSession {
   user: ApiUser | null;
+  /** Returned on sign-in/sign-up for mobile clients; store and send as Authorization: Bearer */
+  access_token?: string;
+  refresh_token?: string;
 }
 
 /** Minimal user identity from auth */

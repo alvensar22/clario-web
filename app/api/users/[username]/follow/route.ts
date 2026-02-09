@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -17,7 +17,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Username required' }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
 
   const { data: profile, error: profileError } = (await supabase
     .from('users')
@@ -91,13 +91,13 @@ export async function GET(request: Request, { params }: RouteParams) {
  * POST /api/users/[username]/follow
  * Follow the user. Auth required.
  */
-export async function POST(_request: Request, { params }: RouteParams) {
+export async function POST(request: Request, { params }: RouteParams) {
   const { username } = await params;
   if (!username) {
     return NextResponse.json({ error: 'Username required' }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,
@@ -134,13 +134,13 @@ export async function POST(_request: Request, { params }: RouteParams) {
  * DELETE /api/users/[username]/follow
  * Unfollow the user. Auth required.
  */
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   const { username } = await params;
   if (!username) {
     return NextResponse.json({ error: 'Username required' }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

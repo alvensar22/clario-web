@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 const POST_SELECT = 'id, user_id, content, media_url, interest_id, created_at';
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const pattern = `%${escapeIlike(raw)}%`;
 
   const [

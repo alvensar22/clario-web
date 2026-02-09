@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -9,11 +9,11 @@ interface RouteParams {
  * GET /api/posts/[id]/comments
  * Returns comments for the post with author (username, avatar_url). Order: oldest first.
  */
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
 
   const { data: rows, error } = (await supabase
     .from('comments')
@@ -63,7 +63,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

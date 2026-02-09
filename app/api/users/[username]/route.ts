@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -9,7 +9,7 @@ interface RouteParams {
  * GET /api/users/[username]
  * Returns a user's public profile by username.
  */
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const { username } = await params;
 
   if (!username) {
@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     );
   }
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
 
   const { data: profile, error } = await supabase
     .from('users')

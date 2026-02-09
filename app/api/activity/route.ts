@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 type ActivityLike = {
@@ -34,7 +34,7 @@ const DEFAULT_LIMIT = 10;
  * Auth required. Sorted by created_at desc. Paginated.
  */
 export async function GET(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

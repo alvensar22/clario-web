@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createClientFromRequest } from '@/lib/supabase/server';
 import type { PostsInsert } from '@/types/supabase';
 import { NextResponse } from 'next/server';
 
@@ -92,7 +92,7 @@ async function getPostsWithMeta(
  * Auth required for following and interests; explore works without auth but feed page requires auth.
  */
 export async function GET(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const { searchParams } = new URL(request.url);
   const feed = (searchParams.get('feed') ?? 'explore') as FeedType;
   if (!['following', 'interests', 'explore'].includes(feed)) {
@@ -187,7 +187,7 @@ export async function GET(request: Request) {
  * Create a post. Body: { content: string, media_url?: string, interest_id?: string }. Auth required.
  */
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

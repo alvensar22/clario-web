@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -9,11 +9,11 @@ interface RouteParams {
  * GET /api/posts/[id]
  * Returns a single post with author, interest, like_count, comment_count, liked. Public.
  */
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
 
   const { data: row, error: fetchError } = (await supabase
     .from('posts')
@@ -66,11 +66,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
  * DELETE /api/posts/[id]
  * Delete own post. Auth required.
  */
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,
@@ -111,7 +111,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const { id: postId } = await params;
   if (!postId) return NextResponse.json({ error: 'Post ID required' }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
     error: userError,

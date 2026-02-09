@@ -46,9 +46,12 @@ export async function POST(request: Request) {
     );
   }
 
+  const session = data.session;
   return NextResponse.json({
     user: data.user
       ? { id: data.user.id, email: data.user.email }
       : null,
+    access_token: session?.access_token ?? undefined,
+    refresh_token: session?.refresh_token ?? undefined,
   });
 }
