@@ -22,16 +22,6 @@ export function PostComposerModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
-
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -46,10 +36,6 @@ export function PostComposerModal({
 
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === modalRef.current) onClose();
-  };
-
   const handleSuccess = () => {
     onSuccess?.();
     onClose();
@@ -58,7 +44,6 @@ export function PostComposerModal({
   return (
     <div
       ref={modalRef}
-      onClick={handleBackdropClick}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
       aria-modal
       aria-labelledby="modal-title"
