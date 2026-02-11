@@ -144,12 +144,13 @@ export async function GET(request: Request) {
         const result = await getPostsWithMeta(supabase, [], user.id);
         return NextResponse.json(result);
       }
+      // Limit interests feed to 5 posts per day for free users
       const { data: rows, error } = (await supabase
         .from('posts')
         .select(POST_SELECT)
         .in('interest_id', interestIds)
         .order('created_at', { ascending: false })
-        .limit(50)) as { data: PostRow[] | null; error: unknown };
+        .limit(5)) as { data: PostRow[] | null; error: unknown };
       if (error) {
         return NextResponse.json(
           { error: (error as { message?: string }).message ?? 'Failed to fetch' },

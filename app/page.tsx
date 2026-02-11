@@ -154,7 +154,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           {posts.length === 0 ? (
             <FeedEmpty variant={feed} />
           ) : (
-            <FeedList posts={posts} currentUserId={session.user.id} />
+            <FeedList posts={posts} currentUserId={session.user.id} feedType={feed} />
           )}
         </div>
       </main>
