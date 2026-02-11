@@ -82,9 +82,7 @@ export function PremiumUpgradeModal({ isOpen, onClose }: PremiumUpgradeModalProp
             variant="primary"
             className="w-full"
             onClick={() => {
-              // TODO: Implement premium upgrade flow
-              console.log('Upgrade to premium');
-              onClose();
+              window.location.href = '/pricing';
             }}
           >
             Upgrade to Premium

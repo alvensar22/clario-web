@@ -31,7 +31,9 @@ export function PremiumUpgradeBanner() {
             <Button
               variant="primary"
               className="w-full sm:w-auto"
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                window.location.href = '/pricing';
+              }}
             >
               Upgrade to Premium
             </Button>
