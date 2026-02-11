@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api/client';
+import { usePostComposer } from '@/components/post/post-composer-provider';
 
 interface SidebarProps {
   username?: string;
@@ -12,13 +13,31 @@ interface SidebarProps {
 export function Sidebar({ username }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { openComposer } = usePostComposer();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleCreateClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    const [{ data: me }, { data: interests }] = await Promise.all([
+      api.getMe(),
+      api.getInterests(),
+    ]);
+    if (me?.username && interests) {
+      openComposer(
+        { username: me.username, avatar_url: me.avatar_url },
+        interests,
+        () => router.refresh()
+      );
+    } else {
+      router.push('/create');
+    }
+  };
 
   const navItems = [
     { href: '/', icon: 'home', label: 'Home' },
     { href: '/search', icon: 'search', label: 'Search' },
-    { href: '/create', icon: 'create', label: 'Create' },
+    { href: '/create', icon: 'create', label: 'Create', onClick: handleCreateClick },
     { href: '/activity', icon: 'heart', label: 'Activity' },
     { href: username ? `/profile/${username}` : '/profile', icon: 'profile', label: 'Profile' },
   ];
@@ -88,45 +107,68 @@ export function Sidebar({ username }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex flex-1 flex-col gap-0.5">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors ${
-                isActive(item.href)
-                  ? 'bg-neutral-900/80 text-white'
-                  : 'text-neutral-400 hover:bg-neutral-900/50 hover:text-white'
-              }`}
-              aria-label={item.label}
-            >
-              {item.icon === 'home' && (
-                <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-              )}
-              {item.icon === 'search' && (
-                <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              )}
-              {item.icon === 'create' && (
-                <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              )}
-              {item.icon === 'heart' && (
-                <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              )}
-              {item.icon === 'profile' && (
-                <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              )}
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const baseClass = `flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors ${
+              isActive(item.href)
+                ? 'bg-neutral-900/80 text-white'
+                : 'text-neutral-400 hover:bg-neutral-900/50 hover:text-white'
+            }`;
+            const iconContent = (
+              <>
+                {item.icon === 'home' && (
+                  <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                )}
+                {item.icon === 'search' && (
+                  <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
+                {item.icon === 'create' && (
+                  <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
+                {item.icon === 'heart' && (
+                  <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                )}
+                {item.icon === 'profile' && (
+                  <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+                <span>{item.label}</span>
+              </>
+            );
+
+            if (item.onClick) {
+              return (
+                <button
+                  key={item.href}
+                  onClick={item.onClick}
+                  type="button"
+                  className={baseClass}
+                  aria-label={item.label}
+                >
+                  {iconContent}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={baseClass}
+                aria-label={item.label}
+              >
+                {iconContent}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Menu at bottom */}

@@ -1,32 +1,51 @@
-import { getApiClient } from '@/lib/api/server';
-import { redirect } from 'next/navigation';
-import { Sidebar } from '@/components/layout/sidebar';
-import { TopNav } from '@/components/layout/top-nav';
-import { PostComposer } from '@/components/post/post-composer';
+'use client';
 
-export default async function CreatePostPage() {
-  const api = await getApiClient();
-  const { data: session } = await api.getSession();
-  if (!session?.user) redirect('/login');
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api/client';
+import { usePostComposer } from '@/components/post/post-composer-provider';
 
-  const [{ data: me }, { data: interests }] = await Promise.all([
-    api.getMe(),
-    api.getInterests(),
-  ]);
-  if (!me?.username) redirect('/onboarding');
+export default function CreatePostPage() {
+  const router = useRouter();
+  const { openComposer } = usePostComposer();
+  const [opened, setOpened] = useState(false);
 
-  return (
-    <div className="min-h-screen bg-black">
-      <Sidebar username={me.username} />
-      <TopNav />
-      <main className="ml-56 pt-14">
-        <div className="mx-auto max-w-2xl px-4 py-8">
-          <PostComposer
-            currentUser={{ username: me.username, avatar_url: me.avatar_url }}
-            interests={interests ?? []}
-          />
-        </div>
-      </main>
-    </div>
-  );
+  useEffect(() => {
+    async function loadAndOpen() {
+      const [{ data: session }, { data: me }, { data: interests }] = await Promise.all([
+        api.getSession(),
+        api.getMe(),
+        api.getInterests(),
+      ]);
+
+      if (!session?.user) {
+        router.push('/login');
+        return;
+      }
+
+      if (!me?.username) {
+        router.push('/onboarding');
+        return;
+      }
+
+      openComposer(
+        { username: me.username, avatar_url: me.avatar_url },
+        interests ?? [],
+        () => router.push('/')
+      );
+      setOpened(true);
+    }
+
+    if (!opened) loadAndOpen();
+  }, [opened, router, openComposer]);
+
+  // Redirect after opening modal
+  useEffect(() => {
+    if (opened) {
+      const timer = setTimeout(() => router.push('/'), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [opened, router]);
+
+  return null;
 }
