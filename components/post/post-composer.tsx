@@ -5,6 +5,7 @@ import type { ApiInterest } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 const MAX_LENGTH = 500;
 const TEXTAREA_MIN_ROWS = 1;
@@ -28,10 +29,12 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
   const [aiDetecting, setAiDetecting] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
   const [showInterestDropdown, setShowInterestDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const interestDropdownRef = useRef<HTMLDivElement>(null);
+  const interestButtonRef = useRef<HTMLButtonElement>(null);
 
   // AI interest detection with debounce
   useEffect(() => {
@@ -74,15 +77,47 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
     };
   }, [content, interestId]);
 
+  // Update dropdown position when it opens
+  useEffect(() => {
+    if (showInterestDropdown && interestButtonRef.current) {
+      const rect = interestButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4, // mt-1 = 4px
+        left: rect.left,
+      });
+    }
+  }, [showInterestDropdown]);
+
   // Close interest dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (interestDropdownRef.current && !interestDropdownRef.current.contains(e.target as Node)) {
+      if (
+        interestDropdownRef.current &&
+        !interestDropdownRef.current.contains(e.target as Node) &&
+        interestButtonRef.current &&
+        !interestButtonRef.current.contains(e.target as Node)
+      ) {
         setShowInterestDropdown(false);
       }
     };
-    if (showInterestDropdown) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (showInterestDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      // Close on resize to reposition
+      const handleResize = () => {
+        if (interestButtonRef.current) {
+          const rect = interestButtonRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + 4,
+            left: rect.left,
+          });
+        }
+      };
+      window.addEventListener('resize', handleResize);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
   }, [showInterestDropdown]);
 
   // Auto-resize textarea (Threads-style single line that grows)
@@ -231,8 +266,9 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
           </button>
 
           {/* Interest: pill dropdown */}
-          <div className="relative" ref={interestDropdownRef}>
+          <div className="relative">
             <button
+              ref={interestButtonRef}
               type="button"
               onClick={() => setShowInterestDropdown((v) => !v)}
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px] transition-colors ${
@@ -262,8 +298,15 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {showInterestDropdown && (
-              <div className="absolute left-0 top-full z-10 mt-1 max-h-48 min-w-[140px] overflow-auto rounded-xl border border-neutral-800 bg-neutral-950 py-1 shadow-xl">
+            {showInterestDropdown && dropdownPosition && typeof window !== 'undefined' && createPortal(
+              <div
+                ref={interestDropdownRef}
+                className="fixed z-[100] max-h-48 w-[180px] max-w-[calc(100vw-2rem)] overflow-auto rounded-xl border border-neutral-800 bg-neutral-950 py-1 shadow-xl"
+                style={{
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`,
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => {
@@ -291,7 +334,8 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
                     {i.name}
                   </button>
                 ))}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         </div>

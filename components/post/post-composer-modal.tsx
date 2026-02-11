@@ -87,7 +87,7 @@ export function PostComposerModal({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto px-4 py-4 sm:px-6" style={{ maxHeight: 'calc(90vh - 73px)' }}>
+        <div className="relative overflow-y-auto px-4 py-4 sm:px-6" style={{ maxHeight: 'calc(90vh - 73px)' }}>
           <PostComposer
             currentUser={currentUser}
             interests={interests}
