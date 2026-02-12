@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 
 const MONTHLY_PRICE = 20;
@@ -8,13 +9,38 @@ const ANNUAL_PRICE_PER_MONTH = 16; // 20% discount: $20 * 0.8 = $16
 const ANNUAL_TOTAL = ANNUAL_PRICE_PER_MONTH * 12; // $192
 
 export function PricingPlans() {
+  const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('monthly');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubscribe = (plan: 'monthly' | 'annual') => {
-    // TODO: Implement payment integration (Stripe, etc.)
-    console.log(`Subscribing to ${plan} plan`);
-    // For now, just show an alert
-    alert(`Premium ${plan} subscription coming soon!`);
+  const handleSubscribe = async (plan: 'monthly' | 'annual') => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ plan }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to start checkout. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,6 +104,8 @@ export function PricingPlans() {
               variant={selectedPlan === 'monthly' ? 'primary' : 'secondary'}
               className="mt-8 w-full bg-white text-black hover:bg-neutral-200"
               onClick={() => handleSubscribe('monthly')}
+              disabled={loading}
+              isLoading={loading && selectedPlan === 'monthly'}
             >
               Subscribe Monthly
             </Button>
@@ -124,6 +152,8 @@ export function PricingPlans() {
               variant={selectedPlan === 'annual' ? 'primary' : 'secondary'}
               className="mt-8 w-full bg-white text-black hover:bg-neutral-200"
               onClick={() => handleSubscribe('annual')}
+              disabled={loading}
+              isLoading={loading && selectedPlan === 'annual'}
             >
               Subscribe Annually
             </Button>

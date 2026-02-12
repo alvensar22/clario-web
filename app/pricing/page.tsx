@@ -5,7 +5,11 @@ import { PricingPlans } from '@/components/pricing/pricing-plans';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PricingPage() {
+interface PricingPageProps {
+  searchParams: Promise<{ canceled?: string }>;
+}
+
+export default async function PricingPage({ searchParams }: PricingPageProps) {
   const api = await getApiClient();
   const { data: session } = await api.getSession();
   
@@ -17,11 +21,23 @@ export default async function PricingPage() {
   const { data: me } = await api.getMe();
   if (!me?.username) redirect('/onboarding');
 
+  const { canceled } = await searchParams;
+  const showCancelMessage = canceled === 'true';
+
   return (
     <div className="min-h-screen bg-black">
       <Sidebar username={me.username} />
       <main className="ml-56 pt-0">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+          {/* Cancel Message */}
+          {showCancelMessage && (
+            <div className="mb-8 rounded-xl border border-yellow-800/50 bg-yellow-900/20 px-4 py-3 text-center">
+              <p className="text-sm text-yellow-400">
+                Payment was canceled. You can try again anytime.
+              </p>
+            </div>
+          )}
+
           {/* Header */}
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
