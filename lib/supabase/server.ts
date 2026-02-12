@@ -6,10 +6,10 @@ import type { Database } from '@/types/supabase';
 
 const getSupabaseConfig = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ROLE_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      'Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+      'Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ROLE_KEY.'
     );
   }
   return { supabaseUrl, supabaseAnonKey };
@@ -64,4 +64,22 @@ export async function createClientFromRequest(
   }
 
   return createClient();
+}
+
+/**
+ * Creates a Supabase client with service role key. Bypasses RLS.
+ * Use only in trusted server-side code (e.g. webhooks). Never expose to client.
+ */
+export function createServiceRoleClient(): SupabaseClient<Database, 'public'> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const roleKey = process.env.NEXT_PUBLIC_SUPABASE_ROLE_KEY;
+  if (!supabaseUrl || !roleKey) {
+    throw new Error(
+      'Missing NEXT_PUBLIC_SUPABASE_ROLE_KEY. Required for webhook handlers that update user records. Use your project role key (not anon).'
+    );
+  }
+  return createSupabaseClient<Database>(supabaseUrl, roleKey) as SupabaseClient<
+    Database,
+    'public'
+  >;
 }

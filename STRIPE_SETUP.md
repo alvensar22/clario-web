@@ -81,21 +81,23 @@ STRIPE_WEBHOOK_SECRET=whsec_... # Webhook signing secret
 
 # Base URL (for redirects)
 NEXT_PUBLIC_BASE_URL=http://localhost:3000 # Change to your production URL
+
+# Required for webhook: allows server to update users (is_premium, subscription_*)
+NEXT_PUBLIC_SUPABASE_ROLE_KEY=eyJ... # From Supabase Dashboard → Settings → API → role key (not anon)
 ```
 
-## Step 6: Update Database Schema (Optional)
+## Step 6: Database Schema
 
-You may want to add premium subscription fields to your users table:
+Migrations add and maintain subscription fields on `users`:
 
-```sql
--- Add premium fields to users table
-ALTER TABLE users ADD COLUMN is_premium BOOLEAN DEFAULT FALSE;
-ALTER TABLE users ADD COLUMN subscription_id TEXT;
-ALTER TABLE users ADD COLUMN subscription_plan TEXT; -- 'monthly' or 'annual'
-ALTER TABLE users ADD COLUMN subscription_status TEXT; -- 'active', 'canceled', etc.
-```
+- **011_add_is_premium_to_users.sql** – `is_premium`
+- **012_add_subscription_fields_to_users.sql** – `subscription_id`, `subscription_plan`, `subscription_status`
 
-Then update the webhook handler (`app/api/webhooks/stripe/route.ts`) to save subscription data.
+Run migrations (e.g. `supabase db push` or your usual flow). The webhook handler updates these fields on:
+
+- **checkout.session.completed** – sets `is_premium`, `subscription_id`, `subscription_plan`, `subscription_status`
+- **customer.subscription.updated** – updates `is_premium` and `subscription_status`
+- **customer.subscription.deleted** – sets `is_premium` false and clears `subscription_id` / `subscription_plan`
 
 ## Step 7: Test the Integration
 
@@ -154,10 +156,28 @@ Then update the webhook handler (`app/api/webhooks/stripe/route.ts`) to save sub
 - Ensure webhook endpoint URL is accessible
 - For local testing, use Stripe CLI
 
-### Payment succeeds but user not upgraded
-- Check webhook handler logs
-- Verify database update queries
-- Check Stripe Dashboard → Events for webhook delivery status
+### Payment succeeds but user not upgraded (`is_premium` / subscription fields not set)
+
+Work through this checklist:
+
+1. **Migrations applied**  
+   Run `supabase db push` (or apply 011 and 012 manually). If `is_premium`, `subscription_id`, `subscription_plan`, or `subscription_status` don’t exist on `users`, the update will fail (see server logs).
+
+2. **`NEXT_PUBLIC_SUPABASE_ROLE_KEY` set**  
+   In `.env.local` (and production env), set `NEXT_PUBLIC_SUPABASE_ROLE_KEY` to your Supabase **role** key from Dashboard → Settings → API (not the anon key). Without it, the webhook does not write to the DB. You should see a clear `[Stripe webhook] SUPABASE_SERVICE_ROLE_KEY is missing or invalid` log if it’s missing.
+
+3. **Webhook is actually called**  
+   - **Local:** Stripe cannot call `localhost`. Run `stripe listen --forward-to localhost:3000/api/webhooks/stripe` and use the **Signing secret** the CLI prints as `STRIPE_WEBHOOK_SECRET` in `.env.local`.  
+   - **Production:** In Stripe Dashboard → Developers → Webhooks, add an endpoint with URL `https://yourdomain.com/api/webhooks/stripe` and the same three events; set `STRIPE_WEBHOOK_SECRET` to that endpoint’s signing secret.
+
+4. **Check server logs**  
+   After a successful checkout, look for:
+   - `[Stripe webhook] User subscription updated successfully` → update worked.
+   - `[Stripe webhook] No userId in session metadata` → checkout session wasn’t created with `metadata: { userId, plan }` (check `/api/checkout`).
+   - `[Stripe webhook] Failed to update user subscription:` → DB error (e.g. column missing, RLS, or wrong `userId`). The log includes `message`, `code`, and `details`.
+
+5. **Stripe Dashboard**  
+   Developers → Webhooks → your endpoint → recent deliveries. Confirm `checkout.session.completed` was sent and the response was 200. If 400, signature verification failed (wrong `STRIPE_WEBHOOK_SECRET`).
 
 ## Additional Resources
 

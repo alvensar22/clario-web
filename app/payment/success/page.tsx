@@ -25,7 +25,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentSucces
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar username={me.username} />
+      <Sidebar username={me.username} isPremium={me.is_premium} />
       <main className="ml-56 pt-0">
         <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="text-center">

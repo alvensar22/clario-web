@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { PostActions } from './post-actions';
 import { PostCardMenu } from './post-card-menu';
+import { PremiumBadge } from '@/components/premium/premium-badge';
 
 interface PostCardProps {
   post: ApiPost;
@@ -67,6 +68,9 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
               <Link href={`/profile/${username}`} onClick={stopProp} className={`${linkClass} text-[15px]`}>
                 @{username}
               </Link>
+              {post.author?.is_premium && (
+                <PremiumBadge size="sm" className="inline-flex" ariaLabel="Premium" />
+              )}
               <span className="text-neutral-500">·</span>
               <RelativeTime isoDate={post.created_at} className="text-[13px] text-neutral-500" />
               {interestName && (

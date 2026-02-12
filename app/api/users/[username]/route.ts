@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   const { data: profile, error } = await supabase
     .from('users')
-    .select('id, username, avatar_url, bio, created_at')
+    .select('id, username, avatar_url, bio, created_at, is_premium')
     .eq('username', username)
     .maybeSingle();
 

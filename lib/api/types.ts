@@ -25,6 +25,7 @@ export interface ApiUserProfile {
   avatar_url: string | null;
   bio: string | null;
   created_at: string;
+  is_premium?: boolean;
 }
 
 /** Public profile from GET /api/users/[username] */
@@ -34,6 +35,7 @@ export interface ApiPublicProfile {
   avatar_url: string | null;
   bio: string | null;
   created_at: string;
+  is_premium?: boolean;
 }
 
 /** Body for PATCH /api/users/me */
@@ -89,7 +91,7 @@ export interface ApiPost {
   media_url: string | null;
   interest_id: string | null;
   created_at: string;
-  author?: { username: string | null; avatar_url: string | null };
+  author?: { username: string | null; avatar_url: string | null; is_premium?: boolean };
   interest?: { name: string } | null;
   like_count?: number;
   comment_count?: number;

@@ -33,7 +33,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   ]);
 
   const [userRes, interestRes, likeCountRes, commentCountRes, likedRes] = await Promise.all([
-    supabase.from('users').select('id, username, avatar_url').eq('id', row.user_id).maybeSingle(),
+    supabase.from('users').select('id, username, avatar_url, is_premium').eq('id', row.user_id).maybeSingle(),
     row.interest_id
       ? supabase.from('interests').select('id, name').eq('id', row.interest_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -44,9 +44,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       : Promise.resolve({ data: null }),
   ]);
 
-  const userData = userRes.data as { username: string | null; avatar_url: string | null } | null;
+  const userData = userRes.data as { username: string | null; avatar_url: string | null; is_premium?: boolean } | null;
   const interestData = interestRes.data as { name: string } | null;
-  const author = userData ? { username: userData.username, avatar_url: userData.avatar_url } : undefined;
+  const author = userData
+    ? {
+        username: userData.username,
+        avatar_url: userData.avatar_url,
+        is_premium: userData.is_premium ?? false,
+      }
+    : undefined;
   const interest = interestData ? { name: interestData.name } : null;
   const like_count = (likeCountRes.data ?? []).length;
   const comment_count = (commentCountRes.data ?? []).length;

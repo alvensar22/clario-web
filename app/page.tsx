@@ -143,7 +143,7 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar username={me.username} />
+      <Sidebar username={me.username} isPremium={me.is_premium} />
       <TopNav />
       <main className="ml-56 pt-14">
         <div className="mx-auto max-w-[600px] border-x border-neutral-800/80">

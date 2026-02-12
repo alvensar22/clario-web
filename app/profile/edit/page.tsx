@@ -33,7 +33,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar username={userProfile.username} />
+      <Sidebar username={userProfile.username} isPremium={userProfile.is_premium} />
       <TopNav />
       <main className="ml-56 pt-14">
         <div className="mx-auto max-w-2xl px-4 py-12">

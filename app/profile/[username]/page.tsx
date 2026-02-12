@@ -5,6 +5,7 @@ import { Avatar } from '@/components/avatar/avatar';
 import { Button } from '@/components/ui/button';
 import { ProfileFollowButton } from '@/components/profile/profile-follow-button';
 import { ProfilePostsList } from '@/components/profile/profile-posts-list';
+import { PremiumBadge } from '@/components/premium/premium-badge';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -47,7 +48,10 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar username={session?.user?.id === userProfile.id ? userProfile.username : undefined} />
+      <Sidebar
+        username={isOwnProfile ? userProfile.username : undefined}
+        isPremium={isOwnProfile ? userProfile.is_premium : undefined}
+      />
       <TopNav />
       <main className="ml-56 pt-14">
         <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
@@ -64,9 +68,14 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
 
             <div className="flex-1 text-center sm:text-left">
               <div className="mb-3">
-                <h1 className="mb-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  {displayName}
-                </h1>
+                <div className="mb-1 flex items-center justify-center gap-2 sm:justify-start">
+                  <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                    {displayName}
+                  </h1>
+                  {userProfile.is_premium && (
+                    <PremiumBadge size="lg" ariaLabel="Premium member" />
+                  )}
+                </div>
                 <p className="text-sm text-neutral-400">
                   @{userProfile.username}
                 </p>

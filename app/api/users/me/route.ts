@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
   let { data: profile, error: profileError } = await supabase
     .from('users')
-    .select('id, email, username, avatar_url, bio, created_at')
+    .select('id, email, username, avatar_url, bio, created_at, is_premium')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     const { data: inserted, error: insertError } = await supabase
       .from('users')
       .insert({ id: user.id, email: user.email ?? '' } as never)
-      .select('id, email, username, avatar_url, bio, created_at')
+      .select('id, email, username, avatar_url, bio, created_at, is_premium')
       .maybeSingle();
 
     if (insertError) {

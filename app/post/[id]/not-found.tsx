@@ -16,7 +16,7 @@ export default async function PostNotFound() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar username={me.username} />
+      <Sidebar username={me.username} isPremium={me.is_premium} />
       <TopNav />
       <main className="ml-56 pt-14">
         <div className="mx-auto max-w-[600px] border-x border-neutral-800/80 px-4 py-12 text-center">

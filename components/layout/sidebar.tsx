@@ -5,17 +5,28 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { usePostComposer } from '@/components/post/post-composer-provider';
+import { PremiumBadge } from '@/components/premium/premium-badge';
 
 interface SidebarProps {
   username?: string;
+  /** When true, show premium indicator in nav. When undefined, sidebar may fetch it client-side. */
+  isPremium?: boolean;
 }
 
-export function Sidebar({ username }: SidebarProps) {
+export function Sidebar({ username, isPremium: isPremiumProp }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { openComposer } = usePostComposer();
   const [showMenu, setShowMenu] = useState(false);
+  const [clientPremium, setClientPremium] = useState<boolean | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const isPremium = isPremiumProp ?? clientPremium ?? false;
+
+  useEffect(() => {
+    if (typeof isPremiumProp !== 'undefined') return;
+    api.getMe().then(({ data }) => setClientPremium(data?.is_premium ?? false));
+  }, [isPremiumProp]);
 
   const handleCreateClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -75,17 +86,24 @@ export function Sidebar({ username }: SidebarProps) {
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-56 border-r border-neutral-800/80 bg-black">
       <div className="flex h-full flex-col px-3 py-4">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-neutral-900/80"
-        >
-          <svg className="h-7 w-7 text-white" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-          <span className="text-xl font-bold text-white">clario</span>
-        </Link>
+        {/* Logo + Premium */}
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <Link
+            href="/"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-neutral-900/80"
+          >
+            <svg className="h-7 w-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span className="text-xl font-bold text-white">clario</span>
+          </Link>
+          {isPremium && (
+            <Link href="/pricing" className="shrink-0" title="Premium member">
+              <PremiumBadge size="md" ariaLabel="Premium member" />
+            </Link>
+          )}
+        </div>
 
         {/* Search: navigates to /search?q=... */}
         {/* <form action="/search" method="get" className="mb-4">

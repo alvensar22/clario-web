@@ -11,11 +11,11 @@ import type { Database } from '@/types/supabase';
  */
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      'Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_ANON_KEY and NEXT_PUBLIC_SUPABASE_URL.'
+      'Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL.'
     );
   }
 

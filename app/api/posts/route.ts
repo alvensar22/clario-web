@@ -56,8 +56,8 @@ async function getPostsWithMeta(
 
   const [usersRes, interestsRes, likeCounts, commentCounts, likedSet] = await Promise.all([
     userIds.length > 0
-      ? supabase.from('users').select('id, username, avatar_url').in('id', userIds)
-      : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] },
+      ? supabase.from('users').select('id, username, avatar_url, is_premium').in('id', userIds)
+      : { data: [] as { id: string; username: string | null; avatar_url: string | null; is_premium?: boolean }[] },
     interestIds.length > 0
       ? supabase.from('interests').select('id, name').in('id', interestIds)
       : { data: [] as { id: string; name: string }[] },
@@ -67,7 +67,14 @@ async function getPostsWithMeta(
   ]);
 
   const usersMap = new Map(
-    (usersRes.data ?? []).map((u) => [u.id, { username: u.username, avatar_url: u.avatar_url }])
+    (usersRes.data ?? []).map((u) => [
+      u.id,
+      {
+        username: u.username,
+        avatar_url: u.avatar_url,
+        is_premium: (u as { is_premium?: boolean }).is_premium ?? false,
+      },
+    ])
   );
   const interestsMap = new Map(
     (interestsRes.data ?? []).map((i) => [i.id, { name: i.name }])

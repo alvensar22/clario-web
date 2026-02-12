@@ -26,7 +26,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
 
   return (
     <div className="min-h-screen bg-black">
-      <Sidebar username={me.username} />
+      <Sidebar username={me.username} isPremium={me.is_premium} />
       <main className="ml-56 pt-0">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
           {/* Cancel Message */}
