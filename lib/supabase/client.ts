@@ -5,19 +5,20 @@ import type { Database } from '@/types/supabase';
 
 /**
  * Creates a Supabase client for Client Components.
- * Uses singleton pattern to prevent multiple instances.
+ * Prefer anon key for Realtime (session auth); falls back to role key if anon not set.
  *
  * @returns Supabase client instance
  */
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ROLE_KEY;
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ROLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !anonKey) {
     throw new Error(
-      'Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL.'
+      'Missing Supabase environment variables. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_ROLE_KEY).'
     );
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient<Database>(supabaseUrl, anonKey);
 }

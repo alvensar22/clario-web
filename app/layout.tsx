@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PostComposerProvider } from "@/components/post/post-composer-provider";
 import { PushSetup } from "@/components/notifications/push-setup";
+import { NotificationProvider } from "@/components/notifications/notification-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,8 +31,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <PostComposerProvider>
-          <PushSetup />
-          {children}
+          <NotificationProvider>
+            <PushSetup />
+            {children}
+          </NotificationProvider>
         </PostComposerProvider>
       </body>
     </html>

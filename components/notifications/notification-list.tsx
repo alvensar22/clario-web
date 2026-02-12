@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api/client';
+import { useNotifications } from './notification-provider';
 import type { ApiNotification } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { RelativeTime } from '@/components/ui/relative-time';
@@ -19,6 +20,33 @@ export function NotificationList({ initialItems, initialHasMore }: NotificationL
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const notificationsCtx = useNotifications();
+
+  useEffect(() => {
+    if (!notificationsCtx) return;
+    return notificationsCtx.onNewNotification((n) => {
+      setItems((prev) => {
+        if (prev.some((i) => i.id === n.id)) return prev;
+        return [n, ...prev];
+      });
+    });
+  }, [notificationsCtx]);
+
+  // Polling fallback: fetch latest every 15s to catch notifications when Realtime fails
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const { data } = await api.getNotifications(10, 0);
+      if (!data?.notifications?.length) return;
+      const fetched = data.notifications;
+      setItems((prev) => {
+        const existingIds = new Set(prev.map((i) => i.id));
+        const newOnes = fetched.filter((n) => !existingIds.has(n.id));
+        if (newOnes.length === 0) return prev;
+        return [...newOnes, ...prev];
+      });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -49,7 +77,8 @@ export function NotificationList({ initialItems, initialHasMore }: NotificationL
     setItems((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
     );
-  }, []);
+    notificationsCtx?.refreshUnreadCount();
+  }, [notificationsCtx]);
 
   if (items.length === 0) {
     return (

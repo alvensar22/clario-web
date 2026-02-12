@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/api/client';
+import { useNotifications } from './notification-provider';
 
 interface NotificationBellProps {
   className?: string;
@@ -9,13 +8,8 @@ interface NotificationBellProps {
 
 /** Icon with unread badge. Wrap in Link or use as child of nav item. */
 export function NotificationBell({ className }: NotificationBellProps) {
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    api.getNotificationUnreadCount().then(({ data }) => {
-      setCount(data?.count ?? 0);
-    });
-  }, []);
+  const ctx = useNotifications();
+  const count = ctx?.unreadCount ?? null;
 
   return (
     <span
