@@ -32,7 +32,7 @@ export function PremiumUpgradeBanner() {
               variant="primary"
               className="w-full sm:w-auto"
               onClick={() => {
-                window.location.href = '/pricing';
+                window.location.href = '/premium';
               }}
             >
               Upgrade to Premium

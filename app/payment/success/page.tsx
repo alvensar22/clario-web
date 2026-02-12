@@ -85,7 +85,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentSucces
                   Go to Feed
                 </Button>
               </Link>
-              <Link href="/pricing">
+              <Link href="/premium">
                 <Button variant="secondary" className="w-full sm:w-auto px-8">
                   View Plan Details
                 </Button>

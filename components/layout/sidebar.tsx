@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { usePostComposer } from '@/components/post/post-composer-provider';
+import { Crown } from 'lucide-react';
 import { PremiumPill } from '@/components/premium/premium-badge';
 
 interface SidebarProps {
@@ -100,7 +101,7 @@ export function Sidebar({ username, isPremium: isPremiumProp }: SidebarProps) {
           </Link>
           {isPremium && (
             <Link
-              href="/pricing"
+              href="/premium"
               className="shrink-0 rounded-full transition-opacity hover:opacity-90"
               title="Premium member"
             >
@@ -191,6 +192,20 @@ export function Sidebar({ username, isPremium: isPremiumProp }: SidebarProps) {
               </Link>
             );
           })}
+
+          {/* Upgrade to Premium / Premium - below nav items */}
+          <Link
+            href="/premium"
+            className={`mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors ${
+              pathname === '/premium'
+                ? 'bg-neutral-900/80 text-white'
+                : 'text-neutral-400 hover:bg-neutral-900/50 hover:text-white'
+            }`}
+            aria-label={isPremium ? 'Premium' : 'Upgrade to Premium'}
+          >
+            <Crown className="h-6 w-6 shrink-0 text-amber-400" strokeWidth={2} aria-hidden />
+            <span>{isPremium ? 'Premium' : 'Upgrade to Premium'}</span>
+          </Link>
         </nav>
 
         {/* Menu at bottom */}

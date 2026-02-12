@@ -111,7 +111,7 @@ Run migrations (e.g. `supabase db push` or your usual flow). The webhook handler
 
 ### Testing Flow
 
-1. Go to `/pricing` page
+1. Go to `/premium` page
 2. Select a plan (Monthly or Annual)
 3. Click "Subscribe" button
 4. You'll be redirected to Stripe Checkout

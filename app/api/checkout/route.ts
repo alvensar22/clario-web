@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         plan: plan,
       },
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/pricing?canceled=true`,
+      cancel_url: `${baseUrl}/premium?canceled=true`,
     });
 
     return NextResponse.json({ url: checkoutSession.url });
