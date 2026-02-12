@@ -19,7 +19,9 @@ export function PostEditModal({
 }: PostEditModalProps) {
   const [content, setContent] = useState(post.content);
   const [interestId, setInterestId] = useState<string | null>(post.interest_id ?? null);
-  const [mediaUrl, setMediaUrl] = useState<string | null>(post.media_url ?? null);
+  const [mediaUrls, setMediaUrls] = useState<string[]>(
+    post.media_urls?.length ? post.media_urls : post.media_url ? [post.media_url] : []
+  );
   const [interests, setInterests] = useState<ApiInterest[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,7 +49,7 @@ export function PostEditModal({
       const res = await api.updatePost(post.id, {
         content: trimmed,
         interest_id: interestId ?? null,
-        media_url: mediaUrl ?? null,
+        media_urls: mediaUrls.length > 0 ? mediaUrls : [],
       });
       setSaving(false);
       if (res.error) {
@@ -56,7 +58,7 @@ export function PostEditModal({
       }
       onSuccess();
     },
-    [post.id, content, interestId, mediaUrl, onSuccess]
+    [post.id, content, interestId, mediaUrls, onSuccess]
   );
 
   const overlayClass =
@@ -96,23 +98,27 @@ export function PostEditModal({
                 required
               />
             </div>
-            {mediaUrl && (
-              <div className="relative inline-block">
-                <img
-                  src={mediaUrl}
-                  alt=""
-                  className="max-h-40 rounded-lg border border-neutral-600 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => setMediaUrl(null)}
-                  className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
-                  aria-label="Remove image"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+            {mediaUrls.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {mediaUrls.map((url, i) => (
+                  <div key={url} className="relative shrink-0">
+                    <img
+                      src={url}
+                      alt=""
+                      className="max-h-40 rounded-lg border border-neutral-600 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMediaUrls((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
+                      aria-label="Remove image"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
             {!loading && (

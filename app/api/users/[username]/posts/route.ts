@@ -1,5 +1,6 @@
 import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { parseMediaUrls } from '@/lib/posts';
 
 interface RouteParams {
   params: Promise<{ username: string }>;
@@ -99,6 +100,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   const postsWithInterest = posts.map((p) => ({
     ...p,
+    media_urls: parseMediaUrls(p.media_url),
     author,
     interest: p.interest_id ? interestsMap.get(p.interest_id) ?? null : null,
     like_count: likeCounts.get(p.id) ?? 0,

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { parseMediaUrls } from '@/lib/posts';
 
 const POST_SELECT = 'id, user_id, content, media_url, interest_id, created_at';
 type PostRow = {
@@ -129,6 +130,7 @@ export async function GET(request: Request) {
 
   const posts = rows.map((p) => ({
     ...p,
+    media_urls: parseMediaUrls(p.media_url),
     author: usersMap.get(p.user_id),
     interest: p.interest_id ? interestsMap.get(p.interest_id) ?? null : null,
     like_count: likeCounts.get(p.id) ?? 0,

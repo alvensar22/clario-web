@@ -1,5 +1,6 @@
 import { createClientFromRequest } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { parseMediaUrls, formatMediaUrlForDb } from '@/lib/posts';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -60,6 +61,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   return NextResponse.json({
     ...row,
+    media_urls: parseMediaUrls(row.media_url),
     author,
     interest,
     like_count,
@@ -141,7 +143,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  let body: { content?: string; media_url?: string | null; interest_id?: string | null };
+  let body: { content?: string; media_url?: string | null; media_urls?: string[]; interest_id?: string | null };
   try {
     body = await request.json();
   } catch {
@@ -154,7 +156,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (!content) return NextResponse.json({ error: 'Content cannot be empty' }, { status: 400 });
     updates.content = content;
   }
-  if (body.media_url !== undefined) updates.media_url = body.media_url ?? null;
+  if (body.media_urls !== undefined) {
+    updates.media_url = formatMediaUrlForDb(body.media_urls) ?? null;
+  } else if (body.media_url !== undefined) {
+    updates.media_url = body.media_url ?? null;
+  }
   if (body.interest_id !== undefined) updates.interest_id = body.interest_id ?? null;
 
   if (Object.keys(updates).length === 0) {
@@ -172,5 +178,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json(data);
+  const row = data as { id: string; user_id: string; content: string; media_url: string | null; interest_id: string | null; created_at: string };
+  return NextResponse.json({ ...row, media_urls: parseMediaUrls(row.media_url) });
 }

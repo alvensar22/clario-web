@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom';
 const MAX_LENGTH = 500;
 const TEXTAREA_MIN_ROWS = 1;
 const TEXTAREA_MAX_ROWS = 8;
+const MAX_IMAGES = 4;
 
 interface PostComposerProps {
   currentUser: { username: string; avatar_url: string | null };
@@ -21,7 +22,7 @@ interface PostComposerProps {
 export function PostComposer({ currentUser, interests, onSuccess }: PostComposerProps) {
   const router = useRouter();
   const [content, setContent] = useState('');
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [interestId, setInterestId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -137,22 +138,40 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
   }, [content]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image');
+    const files = e.target.files;
+    if (!files?.length) return;
+    const remaining = MAX_IMAGES - mediaUrls.length;
+    if (remaining <= 0) {
+      setError(`Maximum ${MAX_IMAGES} images per post`);
+      e.target.value = '';
+      return;
+    }
+    const toAdd = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, remaining);
+    if (toAdd.length === 0) {
+      setError('Please select images');
+      e.target.value = '';
       return;
     }
     setError(null);
     setUploading(true);
-    const { data, error: err } = await api.uploadPostImage(file);
-    setUploading(false);
-    if (err) {
-      setError(err);
-      return;
+    const newUrls: string[] = [];
+    for (const file of toAdd) {
+      const { data, error: err } = await api.uploadPostImage(file);
+      if (err) {
+        setError(err);
+        setUploading(false);
+        e.target.value = '';
+        return;
+      }
+      if (data?.url) newUrls.push(data.url);
     }
-    if (data?.url) setMediaUrl(data.url);
+    setMediaUrls((prev) => [...prev, ...newUrls].slice(0, MAX_IMAGES));
+    setUploading(false);
     e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setMediaUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,7 +182,7 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
     setPosting(true);
     const { error: err } = await api.createPost({
       content: trimmed,
-      media_url: mediaUrl ?? undefined,
+      media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
       interest_id: interestId ?? undefined,
     });
     if (err) {
@@ -174,7 +193,7 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
     // Success: clear form when staying on page (e.g. feed); redirect otherwise
     if (onSuccess) {
       setContent('');
-      setMediaUrl(null);
+      setMediaUrls([]);
       setInterestId(null);
       setAiSuggested(false);
       if (textareaRef.current) {
@@ -217,23 +236,27 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
             required
             onFocus={adjustTextareaHeight}
           />
-          {mediaUrl && (
-            <div className="relative mt-2 inline-block overflow-hidden rounded-xl">
-              <img
-                src={mediaUrl}
-                alt="Upload"
-                className="max-h-72 rounded-xl border border-neutral-800 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => setMediaUrl(null)}
-                className="absolute right-2 top-2 rounded-full bg-black/70 p-1.5 text-white hover:bg-black/90"
-                aria-label="Remove image"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+          {mediaUrls.length > 0 && (
+            <div className="mt-2 flex gap-2 overflow-x-auto overflow-y-hidden pb-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-700">
+              {mediaUrls.map((url, i) => (
+                <div key={url} className="relative shrink-0 overflow-hidden rounded-xl border border-neutral-800">
+                  <img
+                    src={url}
+                    alt=""
+                    className="max-h-72 w-auto max-w-[200px] object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute right-2 top-2 rounded-full bg-black/70 p-1.5 text-white hover:bg-black/90"
+                    aria-label="Remove image"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -246,15 +269,16 @@ export function PostComposer({ currentUser, interests, onSuccess }: PostComposer
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            multiple
             onChange={handleImageChange}
             className="hidden"
           />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
+            disabled={uploading || mediaUrls.length >= MAX_IMAGES}
             className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white disabled:opacity-50"
-            aria-label="Add photo"
+            aria-label="Add photos"
           >
             {uploading ? (
               <span className="block h-5 w-5 animate-spin rounded-full border-2 border-neutral-600 border-t-white" />

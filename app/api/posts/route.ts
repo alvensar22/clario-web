@@ -1,6 +1,7 @@
 import { createClient, createClientFromRequest } from '@/lib/supabase/server';
 import type { PostsInsert } from '@/types/supabase';
 import { NextResponse } from 'next/server';
+import { parseMediaUrls, formatMediaUrlForDb } from '@/lib/posts';
 
 type FeedType = 'following' | 'interests' | 'explore';
 
@@ -82,6 +83,7 @@ async function getPostsWithMeta(
 
   const mapPost = (p: PostRow) => ({
     ...p,
+    media_urls: parseMediaUrls(p.media_url),
     author: usersMap.get(p.user_id),
     interest: p.interest_id ? interestsMap.get(p.interest_id) ?? null : null,
     like_count: likeCounts.get(p.id) ?? 0,
@@ -214,7 +216,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { content?: string; media_url?: string | null; interest_id?: string | null };
+  let body: { content?: string; media_url?: string | null; media_urls?: string[]; interest_id?: string | null };
   try {
     body = await request.json();
   } catch {
@@ -232,10 +234,13 @@ export async function POST(request: Request) {
     );
   }
 
+  const mediaUrlForDb =
+    formatMediaUrlForDb(body.media_urls) ?? body.media_url ?? null;
+
   const insert: PostsInsert = {
     user_id: user.id,
     content,
-    media_url: body.media_url ?? null,
+    media_url: mediaUrlForDb,
     interest_id: body.interest_id ?? null,
   };
 
@@ -252,5 +257,6 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json(data);
+  const row = data as PostRow;
+  return NextResponse.json({ ...row, media_urls: parseMediaUrls(row.media_url) });
 }

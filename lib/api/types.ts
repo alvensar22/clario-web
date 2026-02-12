@@ -89,6 +89,8 @@ export interface ApiPost {
   user_id: string;
   content: string;
   media_url: string | null;
+  /** Parsed list of image URLs (use this for display; falls back to [media_url] when absent) */
+  media_urls?: string[];
   interest_id: string | null;
   created_at: string;
   author?: { username: string | null; avatar_url: string | null; is_premium?: boolean };
@@ -130,7 +132,10 @@ export interface ApiComment {
 /** Body for POST /api/posts */
 export interface ApiCreatePostBody {
   content: string;
+  /** Single image (legacy); prefer media_urls for multiple */
   media_url?: string | null;
+  /** Multiple image URLs (stored as JSON array in media_url column) */
+  media_urls?: string[];
   interest_id?: string | null;
 }
 
@@ -138,6 +143,8 @@ export interface ApiCreatePostBody {
 export interface ApiUpdatePostBody {
   content?: string;
   media_url?: string | null;
+  /** Multiple image URLs (overwrites media_url) */
+  media_urls?: string[];
   interest_id?: string | null;
 }
 

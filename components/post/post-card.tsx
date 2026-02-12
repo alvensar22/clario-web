@@ -22,10 +22,17 @@ interface PostCardProps {
   onDelete?: (postId: string) => void;
 }
 
+function getPostMediaUrls(post: ApiPost): string[] {
+  if (post.media_urls?.length) return post.media_urls;
+  if (post.media_url) return [post.media_url];
+  return [];
+}
+
 export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: PostCardProps) {
   const router = useRouter();
-  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewState, setPreviewState] = useState<{ open: true; index: number } | { open: false }>({ open: false });
   const username = post.author?.username ?? 'unknown';
+  const mediaUrls = getPostMediaUrls(post);
   const stopProp = (e: React.MouseEvent) => e.stopPropagation();
   const avatarUrl = post.author?.avatar_url ?? null;
   const interestName = post.interest?.name;
@@ -62,7 +69,6 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
           />
         </Link>
         <div className="min-w-0 flex-1">
-          {/* Top row: author line left, 3-dots menu upper right */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
               <Link href={`/profile/${username}`} onClick={stopProp} className={`${linkClass} text-[15px]`}>
@@ -91,27 +97,44 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
             )}
           </div>
           <p className={`${contentClass} text-[15px] leading-[1.4] mt-0.5`}>{post.content}</p>
-          {post.media_url && (
+          {mediaUrls.length > 0 && (
             <>
-              <button
-                type="button"
-                onClick={(e) => { stopProp(e); setShowImagePreview(true); }}
-                className={`mt-3 overflow-hidden ${mediaBorderClass} cursor-zoom-in transition-opacity hover:opacity-90`}
+              <div
+                className={`mt-3 flex gap-1.5 overflow-x-auto overflow-y-hidden rounded-lg ${mediaBorderClass}`}
+                style={{ scrollbarGutter: 'stable' }}
               >
-                <Image
-                  src={post.media_url}
-                  alt=""
-                  width={600}
-                  height={400}
-                  className="aspect-video w-full object-cover"
-                  unoptimized={post.media_url.includes('supabase')}
-                />
-              </button>
-              {showImagePreview && (
+                {mediaUrls.map((url, i) => (
+                  <button
+                    key={`${i}-${url}`}
+                    type="button"
+                    onClick={(e) => {
+                      stopProp(e);
+                      setPreviewState({ open: true, index: i });
+                    }}
+                    className={`shrink-0 cursor-zoom-in overflow-hidden rounded-lg transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-0 focus:ring-offset-black ${
+                      mediaUrls.length === 1 ? 'w-full' : 'w-[280px]'
+                    }`}
+                  >
+                    <span className={mediaUrls.length === 1 ? 'block aspect-video w-full max-h-[400px]' : 'block w-full aspect-video'}>
+                      <Image
+                        src={url}
+                        alt=""
+                        width={mediaUrls.length === 1 ? 600 : 280}
+                        height={mediaUrls.length === 1 ? 400 : 157}
+                        className="h-full w-full object-cover"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        unoptimized={url.includes('supabase')}
+                      />
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {previewState.open && (
                 <ImagePreview
-                  src={post.media_url}
+                  images={mediaUrls}
+                  initialIndex={previewState.index}
                   alt={`Image from ${username}`}
-                  onClose={() => setShowImagePreview(false)}
+                  onClose={() => setPreviewState({ open: false })}
                 />
               )}
             </>
