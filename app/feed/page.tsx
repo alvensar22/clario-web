@@ -35,7 +35,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   return (
     <div className="min-h-screen bg-black">
       <Sidebar username={me.username} isPremium={me.is_premium} />
-      <TopNav />
+      <TopNav isPremium={me.is_premium} />
       <main className="ml-56 pt-14">
         <div className="mx-auto max-w-[600px] border-x border-neutral-800/80">
           <FeedComposer

@@ -151,13 +151,19 @@ export async function GET(request: Request) {
         const result = await getPostsWithMeta(supabase, [], user.id);
         return NextResponse.json(result);
       }
-      // Limit interests feed to 5 posts per day for free users
+      const { data: userRow } = (await supabase
+        .from('users')
+        .select('is_premium')
+        .eq('id', user.id)
+        .maybeSingle()) as { data: { is_premium?: boolean } | null };
+      const isPremium = userRow?.is_premium === true;
+      const interestsLimit = isPremium ? 1000 : 5;
       const { data: rows, error } = (await supabase
         .from('posts')
         .select(POST_SELECT)
         .in('interest_id', interestIds)
         .order('created_at', { ascending: false })
-        .limit(5)) as { data: PostRow[] | null; error: unknown };
+        .limit(interestsLimit)) as { data: PostRow[] | null; error: unknown };
       if (error) {
         return NextResponse.json(
           { error: (error as { message?: string }).message ?? 'Failed to fetch' },

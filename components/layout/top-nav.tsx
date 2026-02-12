@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
+import { Crown } from 'lucide-react';
 
 export type FeedTab = 'explore' | 'following' | 'interests';
 
@@ -12,7 +13,12 @@ const FEED_OPTIONS: { value: FeedTab; label: string }[] = [
   { value: 'interests', label: 'My Interests' },
 ];
 
-export function TopNav() {
+interface TopNavProps {
+  /** When false/undefined, show premium badge on My Interests tab to indicate upgrade unlocks unlimited. */
+  isPremium?: boolean;
+}
+
+export function TopNav({ isPremium }: TopNavProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const currentTab = (searchParams.get('tab') as FeedTab) ?? 'explore';
@@ -46,7 +52,12 @@ export function TopNav() {
             onClick={() => setIsOpen(!isOpen)}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800/80"
           >
-            {currentOption.label}
+            <span className="flex items-center gap-1.5">
+              {currentOption.label}
+              {currentOption.value === 'interests' && !isPremium && (
+                <Crown className="h-3.5 w-3.5 shrink-0 text-amber-400" strokeWidth={2} aria-hidden />
+              )}
+            </span>
             <svg
               className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
               fill="none"
@@ -68,13 +79,18 @@ export function TopNav() {
                     key={option.value}
                     href={href}
                     onClick={() => setIsOpen(false)}
-                    className={`flex items-center justify-between px-4 py-2.5 text-[15px] transition-colors ${
+                    className={`flex items-center justify-between gap-2 px-4 py-2.5 text-[15px] transition-colors ${
                       isActive
                         ? 'bg-neutral-800/80 text-white font-medium'
                         : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'
                     }`}
                   >
-                    {option.label}
+                    <span className="flex items-center gap-1.5">
+                      {option.label}
+                      {option.value === 'interests' && !isPremium && (
+                        <Crown className="h-3.5 w-3.5 shrink-0 text-amber-400" strokeWidth={2} aria-hidden />
+                      )}
+                    </span>
                     {isActive && (
                       <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                         <path
