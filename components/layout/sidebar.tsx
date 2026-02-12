@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { usePostComposer } from '@/components/post/post-composer-provider';
-import { PremiumBadge } from '@/components/premium/premium-badge';
+import { PremiumPill } from '@/components/premium/premium-badge';
 
 interface SidebarProps {
   username?: string;
@@ -99,8 +99,12 @@ export function Sidebar({ username, isPremium: isPremiumProp }: SidebarProps) {
             <span className="text-xl font-bold text-white">clario</span>
           </Link>
           {isPremium && (
-            <Link href="/pricing" className="shrink-0" title="Premium member">
-              <PremiumBadge size="md" ariaLabel="Premium member" />
+            <Link
+              href="/pricing"
+              className="shrink-0 rounded-full transition-opacity hover:opacity-90"
+              title="Premium member"
+            >
+              <PremiumPill />
             </Link>
           )}
         </div>

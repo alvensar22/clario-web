@@ -1,7 +1,9 @@
 'use client';
 
+import { Crown } from 'lucide-react';
+
 interface PremiumBadgeProps {
-  /** Size: 'sm' for inline/text, 'md' for nav, 'lg' for profile */
+  /** Size: 'sm' for post card, 'md' for nav (unused if using PremiumPill in nav), 'lg' for profile */
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   /** Accessible label */
@@ -14,25 +16,30 @@ const sizeClasses = {
   lg: 'h-5 w-5',
 };
 
+/** Golden crown icon – use on post cards and profile */
 export function PremiumBadge({ size = 'md', className = '', ariaLabel = 'Premium' }: PremiumBadgeProps) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-purple-500 to-pink-500 text-white ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center text-amber-400 ${className}`}
       aria-label={ariaLabel}
       title="Premium"
     >
-      <svg
-        className={sizeClasses[size]}
-        fill="currentColor"
-        viewBox="0 0 20 20"
-        aria-hidden
-      >
-        <path
-          fillRule="evenodd"
-          d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm10 10a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"
-          clipRule="evenodd"
-        />
-      </svg>
+      <Crown className={sizeClasses[size]} strokeWidth={2} aria-hidden />
+    </span>
+  );
+}
+
+/** Word "Premium" with rounded outline – use in side nav for premium feel */
+export function PremiumPill({ className = '' }: { className?: string }) {
+  return (
+    <span
+      className={
+        `inline-flex shrink-0 items-center justify-center rounded-full border border-amber-400/60 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.15)] ${className}`
+      }
+      aria-label="Premium member"
+      title="Premium member"
+    >
+      Premium
     </span>
   );
 }
