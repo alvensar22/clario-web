@@ -275,10 +275,12 @@ export const api = {
     return fetchApi<ApiNotificationUnreadCount>('/api/notifications/unread-count');
   },
 
-  async markNotificationRead(id?: string): Promise<ApiResult<{ success: boolean }>> {
+  async markNotificationRead(id?: string | string[]): Promise<ApiResult<{ success: boolean }>> {
+    const body =
+      typeof id === 'string' ? { id } : Array.isArray(id) && id.length > 0 ? { ids: id } : {};
     return fetchApi<{ success: boolean }>('/api/notifications/read', {
       method: 'POST',
-      body: JSON.stringify(id ? { id } : {}),
+      body: JSON.stringify(body),
     });
   },
 

@@ -4,19 +4,48 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api/client';
 import { useNotifications } from './notification-provider';
-import type { ApiNotification } from '@/lib/api/types';
+import type { ApiNotificationAggregated, ApiNotification } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { RelativeTime } from '@/components/ui/relative-time';
 
 const PAGE_SIZE = 20;
 
 interface NotificationListProps {
-  initialItems: ApiNotification[];
+  initialItems: ApiNotificationAggregated[];
   initialHasMore: boolean;
 }
 
+function formatActorsText(
+  actors: { username: string | null }[],
+  totalCount: number,
+  verb: string
+): string {
+  const names = actors
+    .filter((a) => a.username)
+    .map((a) => `@${a.username}`)
+    .slice(0, 2);
+  if (totalCount === 1) {
+    return `${names[0] ?? 'Someone'} ${verb}`;
+  }
+  if (totalCount === 2 && names.length >= 2) {
+    return `${names[0]} and ${names[1]} ${verb}`;
+  }
+  if (totalCount === 2 && names.length === 1) {
+    return `${names[0]} and 1 other ${verb}`;
+  }
+  if (names.length >= 2) {
+    const others = totalCount - 2;
+    return `${names[0]}, ${names[1]} and ${others} others ${verb}`;
+  }
+  if (names.length === 1) {
+    const others = totalCount - 1;
+    return `${names[0]} and ${others} others ${verb}`;
+  }
+  return `${totalCount} people ${verb}`;
+}
+
 export function NotificationList({ initialItems, initialHasMore }: NotificationListProps) {
-  const [items, setItems] = useState<ApiNotification[]>(initialItems);
+  const [items, setItems] = useState<ApiNotificationAggregated[]>(initialItems);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -24,25 +53,28 @@ export function NotificationList({ initialItems, initialHasMore }: NotificationL
 
   useEffect(() => {
     if (!notificationsCtx) return;
-    return notificationsCtx.onNewNotification((n) => {
-      setItems((prev) => {
-        if (prev.some((i) => i.id === n.id)) return prev;
-        return [n, ...prev];
+    return notificationsCtx.onNewNotification((_n: ApiNotification) => {
+      api.getNotifications(PAGE_SIZE, 0).then(({ data }) => {
+        if (!data?.notifications?.length) return;
+        const fetched = data.notifications;
+        const fetchedIds = new Set(fetched.flatMap((g) => g.ids));
+        setItems((prev) => {
+          const rest = prev.filter((g) => !g.ids.some((id) => fetchedIds.has(id)));
+          return [...fetched, ...rest];
+        });
       });
     });
   }, [notificationsCtx]);
 
-  // Polling fallback: fetch latest every 15s to catch notifications when Realtime fails
   useEffect(() => {
     const interval = setInterval(async () => {
-      const { data } = await api.getNotifications(10, 0);
+      const { data } = await api.getNotifications(PAGE_SIZE, 0);
       if (!data?.notifications?.length) return;
       const fetched = data.notifications;
       setItems((prev) => {
-        const existingIds = new Set(prev.map((i) => i.id));
-        const newOnes = fetched.filter((n) => !existingIds.has(n.id));
-        if (newOnes.length === 0) return prev;
-        return [...newOnes, ...prev];
+        const fetchedIds = new Set(fetched.flatMap((g) => g.ids));
+        const rest = prev.filter((g) => !g.ids.some((id) => fetchedIds.has(id)));
+        return [...fetched, ...rest];
       });
     }, 15000);
     return () => clearInterval(interval);
@@ -72,10 +104,14 @@ export function NotificationList({ initialItems, initialHasMore }: NotificationL
     return () => observer.disconnect();
   }, [hasMore, loadMore, loading]);
 
-  const markRead = useCallback((id: string) => {
-    api.markNotificationRead(id);
+  const markRead = useCallback((ids: string[]) => {
+    api.markNotificationRead(ids);
     setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
+      prev.map((g) =>
+        g.ids.some((id) => ids.includes(id))
+          ? { ...g, read_at: new Date().toISOString() }
+          : g
+      )
     );
     notificationsCtx?.refreshUnreadCount();
   }, [notificationsCtx]);
@@ -93,7 +129,7 @@ export function NotificationList({ initialItems, initialHasMore }: NotificationL
     <>
       <ul className="divide-y divide-neutral-800/80">
         {items.map((item) => (
-          <NotificationRow key={item.id} item={item} onMarkRead={markRead} />
+          <NotificationRow key={item.ids[0] ?? item.created_at} item={item} onMarkRead={markRead} />
         ))}
       </ul>
       {hasMore && (
@@ -111,11 +147,12 @@ function NotificationRow({
   item,
   onMarkRead,
 }: {
-  item: ApiNotification;
-  onMarkRead: (id: string) => void;
+  item: ApiNotificationAggregated;
+  onMarkRead: (ids: string[]) => void;
 }) {
-  const username = item.actor?.username ?? 'someone';
   const isUnread = !item.read_at;
+  const firstActor = item.actors[0];
+  const username = firstActor?.username ?? 'someone';
 
   const href =
     item.type === 'follow'
@@ -125,10 +162,11 @@ function NotificationRow({
         : '/notifications';
 
   const handleClick = () => {
-    if (isUnread) onMarkRead(item.id);
+    if (isUnread) onMarkRead(item.ids);
   };
 
   if (item.type === 'like') {
+    const text = formatActorsText(item.actors, item.total_count, 'liked your post');
     return (
       <li>
         <Link
@@ -142,9 +180,7 @@ function NotificationRow({
             </svg>
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-white">
-              <span className="font-medium">@{username}</span> liked your post
-            </p>
+            <p className="text-sm text-white">{text}</p>
             <p className="mt-1 text-xs text-neutral-500">
               <RelativeTime isoDate={item.created_at} />
             </p>
@@ -155,6 +191,7 @@ function NotificationRow({
   }
 
   if (item.type === 'comment') {
+    const text = formatActorsText(item.actors, item.total_count, 'commented on your post');
     return (
       <li>
         <Link
@@ -168,9 +205,7 @@ function NotificationRow({
             </svg>
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-white">
-              <span className="font-medium">@{username}</span> commented on your post
-            </p>
+            <p className="text-sm text-white">{text}</p>
             <p className="mt-1 text-xs text-neutral-500">
               <RelativeTime isoDate={item.created_at} />
             </p>
@@ -181,6 +216,7 @@ function NotificationRow({
   }
 
   if (item.type === 'follow') {
+    const text = formatActorsText(item.actors, item.total_count, 'started following you');
     return (
       <li>
         <Link
@@ -188,15 +224,19 @@ function NotificationRow({
           onClick={handleClick}
           className={`flex gap-3 px-4 py-3 transition-colors hover:bg-neutral-900/40 ${isUnread ? 'bg-neutral-900/20' : ''}`}
         >
-          <Avatar
-            src={item.actor?.avatar_url ?? undefined}
-            fallback={username}
-            size="md"
-          />
+          <div className="flex shrink-0 -space-x-2">
+            {item.actors.slice(0, 2).map((a) => (
+              <Avatar
+                key={a.id}
+                src={a.avatar_url ?? undefined}
+                fallback={a.username ?? '?'}
+                size="md"
+                className="ring-2 ring-black shrink-0"
+              />
+            ))}
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-white">
-              <span className="font-medium">@{username}</span> started following you
-            </p>
+            <p className="text-sm text-white">{text}</p>
             <p className="mt-1 text-xs text-neutral-500">
               <RelativeTime isoDate={item.created_at} />
             </p>

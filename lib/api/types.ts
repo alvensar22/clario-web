@@ -208,7 +208,7 @@ export interface ApiActivityResponse {
 /** Notification type */
 export type ApiNotificationType = 'like' | 'comment' | 'follow' | 'mention';
 
-/** Single notification from GET /api/notifications */
+/** Single notification from GET /api/notifications (raw, for realtime) */
 export interface ApiNotification {
   id: string;
   user_id: string;
@@ -221,9 +221,21 @@ export interface ApiNotification {
   actor?: { username: string | null; avatar_url: string | null };
 }
 
+/** Aggregated notification: "john, kim and 10 others liked your post" */
+export interface ApiNotificationAggregated {
+  ids: string[];
+  type: ApiNotificationType;
+  post_id: string | null;
+  comment_id: string | null;
+  actors: { id: string; username: string | null; avatar_url: string | null }[];
+  total_count: number;
+  read_at: string | null;
+  created_at: string;
+}
+
 /** Response from GET /api/notifications */
 export interface ApiNotificationsResponse {
-  notifications: ApiNotification[];
+  notifications: ApiNotificationAggregated[];
   hasMore: boolean;
 }
 

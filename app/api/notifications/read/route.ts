@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 
 /**
  * POST /api/notifications/read
- * Body: { id?: string } – if id provided, mark that notification read; else mark all read.
+ * Body: { id?: string; ids?: string[] } – if id provided, mark that notification read;
+ * if ids provided, mark those read; else mark all read.
  * Auth required.
  */
 export async function POST(request: Request) {
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: { id?: string };
+  let body: { id?: string; ids?: string[] };
   try {
     body = await request.json().catch(() => ({}));
   } catch {
@@ -31,6 +32,16 @@ export async function POST(request: Request) {
       .from('notifications')
       .update({ read_at: now } as never)
       .eq('id', body.id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  } else if (Array.isArray(body.ids) && body.ids.length > 0) {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: now } as never)
+      .in('id', body.ids)
       .eq('user_id', user.id);
 
     if (error) {
