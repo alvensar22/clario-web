@@ -7,6 +7,7 @@ import { api } from '@/lib/api/client';
 import { usePostComposer } from '@/components/post/post-composer-provider';
 import { Crown } from 'lucide-react';
 import { PremiumPill } from '@/components/premium/premium-badge';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 interface SidebarProps {
   username?: string;
@@ -51,12 +52,14 @@ export function Sidebar({ username, isPremium: isPremiumProp }: SidebarProps) {
     { href: '/search', icon: 'search', label: 'Search' },
     { href: '/create', icon: 'create', label: 'Create', onClick: handleCreateClick },
     { href: '/activity', icon: 'heart', label: 'Activity' },
+    { href: '/notifications', icon: 'notifications', label: 'Notifications' },
     { href: username ? `/profile/${username}` : '/profile', icon: 'profile', label: 'Profile' },
   ];
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
     if (href.startsWith('/profile/')) return pathname.startsWith('/profile/');
+    if (href === '/notifications') return pathname === '/notifications';
     return pathname.startsWith(href);
   };
 
@@ -157,6 +160,9 @@ export function Sidebar({ username, isPremium: isPremiumProp }: SidebarProps) {
                   <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
+                )}
+                {item.icon === 'notifications' && (
+                  <NotificationBell />
                 )}
                 {item.icon === 'profile' && (
                   <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

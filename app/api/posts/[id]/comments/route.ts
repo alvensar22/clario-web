@@ -1,4 +1,5 @@
 import { createClientFromRequest } from '@/lib/supabase/server';
+import { createNotification } from '@/lib/notifications';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -93,6 +94,17 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  const { data: post } = await supabase.from('posts').select('user_id').eq('id', postId).maybeSingle();
+  if (post?.user_id && data) {
+    createNotification({
+      userId: post.user_id,
+      actorId: user.id,
+      type: 'comment',
+      postId,
+      commentId: data.id,
+    }).catch(() => {});
   }
 
   const author = { username: null as string | null, avatar_url: null as string | null };

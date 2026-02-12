@@ -1,4 +1,5 @@
 import { createClientFromRequest } from '@/lib/supabase/server';
+import { createNotification } from '@/lib/notifications';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -126,6 +127,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (error.code === '23505') return NextResponse.json({ following: true });
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  createNotification({ userId: profile.id, actorId: user.id, type: 'follow' }).catch(() => {});
 
   return NextResponse.json({ following: true });
 }

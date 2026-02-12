@@ -19,6 +19,8 @@ import type {
   ApiComment,
   ApiSearchResult,
   ApiActivityResponse,
+  ApiNotificationsResponse,
+  ApiNotificationUnreadCount,
 } from '@/lib/api/types';
 import { cookies } from 'next/headers';
 
@@ -192,6 +194,17 @@ export async function getApiClient() {
         `/api/activity?limit=${limit}&offset=${offset}`,
         { cookieHeader }
       );
+    },
+
+    async getNotifications(limit = 20, offset = 0): Promise<ApiResult<ApiNotificationsResponse>> {
+      return fetchApi<ApiNotificationsResponse>(
+        `/api/notifications?limit=${limit}&offset=${offset}`,
+        { cookieHeader }
+      );
+    },
+
+    async getNotificationUnreadCount(): Promise<ApiResult<ApiNotificationUnreadCount>> {
+      return fetchApi<ApiNotificationUnreadCount>('/api/notifications/unread-count', { cookieHeader });
     },
   };
 }

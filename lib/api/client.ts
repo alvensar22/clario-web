@@ -22,6 +22,8 @@ import type {
   ApiComment,
   ApiSearchResult,
   ApiActivityResponse,
+  ApiNotificationsResponse,
+  ApiNotificationUnreadCount,
 } from '@/lib/api/types';
 
 const getBaseUrl = (): string => {
@@ -261,5 +263,33 @@ export const api = {
     return fetchApi<ApiActivityResponse>(
       `/api/activity?limit=${limit}&offset=${offset}`
     );
+  },
+
+  async getNotifications(limit = 20, offset = 0): Promise<ApiResult<ApiNotificationsResponse>> {
+    return fetchApi<ApiNotificationsResponse>(
+      `/api/notifications?limit=${limit}&offset=${offset}`
+    );
+  },
+
+  async getNotificationUnreadCount(): Promise<ApiResult<ApiNotificationUnreadCount>> {
+    return fetchApi<ApiNotificationUnreadCount>('/api/notifications/unread-count');
+  },
+
+  async markNotificationRead(id?: string): Promise<ApiResult<{ success: boolean }>> {
+    return fetchApi<{ success: boolean }>('/api/notifications/read', {
+      method: 'POST',
+      body: JSON.stringify(id ? { id } : {}),
+    });
+  },
+
+  async subscribePush(subscription: PushSubscription): Promise<ApiResult<{ success: boolean }>> {
+    const payload = subscription.toJSON();
+    return fetchApi<{ success: boolean }>('/api/notifications/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({
+        endpoint: payload.endpoint,
+        keys: payload.keys,
+      }),
+    });
   },
 };

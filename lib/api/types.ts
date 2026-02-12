@@ -204,3 +204,30 @@ export interface ApiActivityResponse {
   activity: ApiActivityItem[];
   hasMore: boolean;
 }
+
+/** Notification type */
+export type ApiNotificationType = 'like' | 'comment' | 'follow' | 'mention';
+
+/** Single notification from GET /api/notifications */
+export interface ApiNotification {
+  id: string;
+  user_id: string;
+  actor_id: string;
+  type: ApiNotificationType;
+  post_id: string | null;
+  comment_id: string | null;
+  read_at: string | null;
+  created_at: string;
+  actor?: { username: string | null; avatar_url: string | null };
+}
+
+/** Response from GET /api/notifications */
+export interface ApiNotificationsResponse {
+  notifications: ApiNotification[];
+  hasMore: boolean;
+}
+
+/** Response from GET /api/notifications/unread-count */
+export interface ApiNotificationUnreadCount {
+  count: number;
+}

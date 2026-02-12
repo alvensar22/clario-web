@@ -1,4 +1,5 @@
 import { createClientFromRequest } from '@/lib/supabase/server';
+import { createNotification } from '@/lib/notifications';
 import { NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -62,6 +63,11 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ count: count ?? 0, liked: true });
     }
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  const { data: post } = await supabase.from('posts').select('user_id').eq('id', postId).maybeSingle();
+  if (post?.user_id) {
+    createNotification({ userId: post.user_id, actorId: user.id, type: 'like', postId }).catch(() => {});
   }
 
   const { count } = await supabase.from('likes').select('id', { count: 'exact', head: true }).eq('post_id', postId);
