@@ -508,6 +508,58 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                   <div
                     className={`flex min-w-0 max-w-[75%] flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
+                    <div className="flex items-end gap-1">
+                      {isMe && showTime && (
+                        <div className="flex shrink-0 flex-row items-center gap-0.5 pb-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReplyTo({ id: msg.id, content: msg.content, sender_id: msg.sender_id });
+                              setClickedMessageId(null);
+                              textareaRef.current?.focus();
+                            }}
+                            className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                            aria-label="Reply"
+                          >
+                            <Reply className="h-3.5 w-3.5" />
+                          </button>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReactionPickerMessageId((id) => (id === msg.id ? null : msg.id));
+                              }}
+                              className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                              aria-label="React"
+                            >
+                              <Smile className="h-3.5 w-3.5" />
+                            </button>
+                            {reactionPickerMessageId === msg.id && (
+                              <div
+                                ref={reactionPickerRef}
+                                className="absolute bottom-full right-0 left-auto z-50 mb-1 flex gap-0.5 rounded-xl border border-neutral-700 bg-neutral-900 p-1.5 shadow-xl"
+                              >
+                                {QUICK_REACTIONS.map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleQuickReaction(msg.id, emoji);
+                                    }}
+                                    className="rounded p-1.5 text-lg transition-colors hover:bg-neutral-700"
+                                    aria-label={`React with ${emoji}`}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     <div className="relative">
                       <button
                         type="button"
@@ -559,7 +611,9 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                       </button>
                       {hasReactions && (
                         <div
-                          className={`absolute bottom-0 right-0 z-10 flex translate-y-1/2 flex-wrap gap-1 justify-end`}
+                          className={`absolute bottom-0 z-10 flex translate-y-1/2 flex-wrap gap-1 ${
+                            isMe ? 'left-0 justify-start' : 'right-0 justify-end'
+                          }`}
                         >
                           {msg.reactions!.map((r) => (
                             <button
@@ -586,12 +640,8 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                         </div>
                       )}
                     </div>
-                    {showTime && (
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <p className={`text-[10px] ${isMe ? 'text-blue-200' : 'text-neutral-500'}`}>
-                          {formatRelativeTime(msg.created_at)}
-                        </p>
-                        <div className="flex items-center gap-0.5">
+                      {!isMe && showTime && (
+                        <div className="flex shrink-0 flex-row items-center gap-0.5 pb-1">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -600,10 +650,10 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                               setClickedMessageId(null);
                               textareaRef.current?.focus();
                             }}
-                            className="rounded px-1 py-0.5 text-[10px] text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                            className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                            aria-label="Reply"
                           >
-                            <Reply className="mr-0.5 inline h-3 w-3" />
-                            Reply
+                            <Reply className="h-3.5 w-3.5" />
                           </button>
                           <div className="relative">
                             <button
@@ -612,17 +662,15 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                                 e.stopPropagation();
                                 setReactionPickerMessageId((id) => (id === msg.id ? null : msg.id));
                               }}
-                              className="rounded px-1 py-0.5 text-[10px] text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                              className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                              aria-label="React"
                             >
-                              <Smile className="mr-0.5 inline h-3 w-3" />
-                              React
+                              <Smile className="h-3.5 w-3.5" />
                             </button>
                             {reactionPickerMessageId === msg.id && (
                               <div
                                 ref={reactionPickerRef}
-                                className={`absolute bottom-full z-50 mb-1 flex gap-0.5 rounded-xl border border-neutral-700 bg-neutral-900 p-1.5 shadow-xl ${
-                                  isMe ? 'right-0 left-auto' : 'left-0'
-                                }`}
+                                className="absolute bottom-full left-0 z-50 mb-1 flex gap-0.5 rounded-xl border border-neutral-700 bg-neutral-900 p-1.5 shadow-xl"
                               >
                                 {QUICK_REACTIONS.map((emoji) => (
                                   <button
@@ -642,7 +690,12 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                             )}
                           </div>
                         </div>
-                      </div>
+                      )}
+                    </div>
+                    {showTime && (
+                      <p className={`mt-1 text-[10px] ${isMe ? 'text-blue-200' : 'text-neutral-500'}`}>
+                        {formatRelativeTime(msg.created_at)}
+                      </p>
                     )}
                   </div>
                 </div>
