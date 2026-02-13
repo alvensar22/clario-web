@@ -3,21 +3,23 @@
 import { useChat } from './chat-provider';
 import { ChatConversation } from './chat-conversation';
 
-/** Renders the inline chat panel when a chat is open (Facebook-style). */
+/** Renders inline chat panels when chats are open (Facebook-style, multiple supported). */
 export function ChatPanel() {
   const chatCtx = useChat();
-  const openChatId = chatCtx?.openChatId ?? null;
-  const openChatData = chatCtx?.openChatData ?? null;
+  const openChats = chatCtx?.openChats ?? [];
 
-  if (!openChatId || !openChatData) return null;
+  if (openChats.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-40">
-      <ChatConversation
-        chatId={openChatId}
-        otherUser={openChatData.other_user}
-        onClose={() => chatCtx?.closeChat()}
-      />
+    <div className="fixed bottom-4 right-4 z-40 flex max-w-[calc(100vw-2rem)] flex-row items-end justify-end gap-2 overflow-x-auto">
+      {openChats.map((chat) => (
+        <ChatConversation
+          key={chat.id}
+          chatId={chat.id}
+          otherUser={chat.other_user}
+          onClose={() => chatCtx?.closeChat(chat.id)}
+        />
+      ))}
     </div>
   );
 }

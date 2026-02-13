@@ -7,14 +7,14 @@ import type { ApiChat } from '@/lib/api/types';
 
 export const CHAT_NEW_MESSAGE_EVENT = 'chat:new-message';
 
+const MAX_OPEN_CHATS = 5;
+
 interface ChatContextValue {
   chatUnreadCount: number | null;
   refreshChatUnreadCount: () => void;
-  openChatId: string | null;
-  openChatData: ApiChat | null;
-  setOpenChatId: (id: string | null) => void;
+  openChats: ApiChat[];
   openChat: (chat: ApiChat) => void;
-  closeChat: () => void;
+  closeChat: (chatId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -26,8 +26,7 @@ export function useChat() {
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [chatUnreadCount, setChatUnreadCount] = useState<number | null>(null);
-  const [openChatId, setOpenChatIdState] = useState<string | null>(null);
-  const [openChatData, setOpenChatData] = useState<ApiChat | null>(null);
+  const [openChats, setOpenChats] = useState<ApiChat[]>([]);
 
   const refreshChatUnreadCount = useCallback(() => {
     api.getChatUnreadCount().then(({ data }) => {
@@ -35,19 +34,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const setOpenChatId = useCallback((id: string | null) => {
-    setOpenChatIdState(id);
-    if (!id) setOpenChatData(null);
-  }, []);
-
   const openChat = useCallback((chat: ApiChat) => {
-    setOpenChatIdState(chat.id);
-    setOpenChatData(chat);
+    setOpenChats((prev) => {
+      const existing = prev.filter((c) => c.id !== chat.id);
+      const updated = [...existing, chat];
+      return updated.slice(-MAX_OPEN_CHATS);
+    });
   }, []);
 
-  const closeChat = useCallback(() => {
-    setOpenChatIdState(null);
-    setOpenChatData(null);
+  const closeChat = useCallback((chatId: string) => {
+    setOpenChats((prev) => prev.filter((c) => c.id !== chatId));
   }, []);
 
   useEffect(() => {
@@ -100,9 +96,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       value={{
         chatUnreadCount,
         refreshChatUnreadCount,
-        openChatId,
-        openChatData,
-        setOpenChatId,
+        openChats,
         openChat,
         closeChat,
       }}
