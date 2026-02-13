@@ -4,16 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Send, Minimize2, Maximize2, X, Heart, Smile, ImagePlus } from 'lucide-react';
+import { Send, Minimize2, Maximize2, X, Heart, Smile, ImagePlus, Reply } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/lib/api/client';
 import { useChat } from './chat-provider';
-import type { ApiChatMessage } from '@/lib/api/types';
+import type { ApiChatMessage, ApiChatReplyTo, ApiChatReaction } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { ImagePreview } from '@/components/ui/image-preview';
 import { formatRelativeTime } from '@/lib/utils';
 
 import { Theme as EmojiTheme } from 'emoji-picker-react';
+
+const QUICK_REACTIONS = ['❤️', '👍', '😂', '😮', '😢'] as const;
 
 const EmojiPicker = dynamic(
   () => import('emoji-picker-react').then((mod) => mod.default),
@@ -33,6 +35,9 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const [input, setInput] = useState('');
   const [clickedMessageId, setClickedMessageId] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<{ images: string[]; index: number } | null>(null);
+  const [replyTo, setReplyTo] = useState<ApiChatReplyTo | null>(null);
+  const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pendingImages, setPendingImages] = useState<
@@ -42,7 +47,14 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const reactionPickerRef = useRef<HTMLDivElement>(null);
   const chatCtx = useChat();
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data: { user } }) => setCurrentUserId(user?.id ?? null));
+  }, []);
 
   const loadMessages = useCallback(async () => {
     const { data } = await api.getChatMessages(chatId, 50, 0);
@@ -74,14 +86,83 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
           table: 'chat_messages',
           filter: `chat_id=eq.${chatId}`,
         },
-        (payload) => {
-          const row = payload.new as ApiChatMessage;
+        async (payload) => {
+          const row = payload.new as ApiChatMessage & { reply_to_id?: string };
           setMessages((prev) => {
             if (prev.some((m) => m.id === row.id)) return prev;
-            return [...prev, row];
+            const replyTo = row.reply_to_id ? prev.find((m) => m.id === row.reply_to_id) : null;
+            const msg: ApiChatMessage = {
+              ...row,
+              reply_to: replyTo ? { id: replyTo.id, content: replyTo.content, sender_id: replyTo.sender_id } : null,
+              reactions: [],
+            };
+            return [...prev, msg];
           });
           api.markChatRead(chatId);
           chatCtx?.refreshChatUnreadCount();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_message_reactions',
+        },
+        async (payload) => {
+          const row = payload.new as { message_id: string; user_id: string; emoji: string };
+          const myId = currentUserId ?? (await createClient().auth.getUser()).data.user?.id;
+          if (row.user_id === myId) return;
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== row.message_id) return m;
+              const reactions = [...(m.reactions ?? [])];
+              const idx = reactions.findIndex((r) => r.emoji === row.emoji);
+              if (idx >= 0) {
+                const existing = reactions[idx];
+                if (existing) {
+                  reactions[idx] = {
+                    emoji: existing.emoji,
+                    count: existing.count + 1,
+                    reacted_by_me: existing.reacted_by_me || row.user_id === myId,
+                  };
+                }
+              } else {
+                reactions.push({ emoji: row.emoji, count: 1, reacted_by_me: row.user_id === myId });
+              }
+              return { ...m, reactions };
+            })
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'chat_message_reactions',
+        },
+        async (payload) => {
+          const row = payload.old as { message_id: string; user_id: string; emoji: string };
+          const myId = currentUserId ?? (await createClient().auth.getUser()).data.user?.id;
+          if (row.user_id === myId) return;
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== row.message_id) return m;
+              const reactions = (m.reactions ?? [])
+                .map((r) =>
+                  r.emoji === row.emoji
+                    ? {
+                        ...r,
+                        count: Math.max(0, r.count - 1),
+                        reacted_by_me: row.user_id === myId ? false : r.reacted_by_me,
+                      }
+                    : r
+                )
+                .filter((r) => r.count > 0);
+              return { ...m, reactions };
+            })
+          );
         }
       )
       .subscribe();
@@ -89,7 +170,7 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [chatId, chatCtx]);
+  }, [chatId, chatCtx, currentUserId]);
 
   const handleSend = useCallback(async () => {
     const content = input.trim();
@@ -100,15 +181,17 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     setSending(true);
     const urls = pendingImages.map((p) => p.url).filter((u): u is string => !!u);
     setPendingImages([]);
-    const { data } = await api.sendChatMessage(chatId, content || '', urls.length ? urls : undefined);
+    const replyToId = replyTo?.id;
+    setReplyTo(null);
+    const { data } = await api.sendChatMessage(chatId, content || '', urls.length ? urls : undefined, replyToId);
     setInput('');
     setSending(false);
 
     if (data) {
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));
       chatCtx?.refreshChatUnreadCount();
     }
-  }, [chatId, input, pendingImages, sending, chatCtx]);
+  }, [chatId, input, pendingImages, replyTo, sending, chatCtx]);
 
   const MAX_IMAGES = 5;
 
@@ -172,7 +255,7 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     setSending(false);
 
     if (data) {
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));
       chatCtx?.refreshChatUnreadCount();
     }
   }, [chatId, sending, chatCtx]);
@@ -194,10 +277,56 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
       ) {
         setShowEmojiPicker(false);
       }
+      if (
+        reactionPickerMessageId &&
+        reactionPickerRef.current &&
+        !reactionPickerRef.current.contains(e.target as Node)
+      ) {
+        setReactionPickerMessageId(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showEmojiPicker]);
+  }, [showEmojiPicker, reactionPickerMessageId]);
+
+  const handleToggleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      const { data } = await api.toggleChatReaction(chatId, messageId, emoji);
+      if (data) {
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== messageId) return m;
+            const reactions = [...(m.reactions ?? [])];
+            const idx = reactions.findIndex((r) => r.emoji === emoji);
+            if (idx >= 0) {
+              const r = reactions[idx];
+              if (r) {
+                if (data.action === 'removed') {
+                  const next: ApiChatReaction = { emoji: r.emoji, count: r.count - 1, reacted_by_me: false };
+                  if (next.count <= 0) reactions.splice(idx, 1);
+                  else reactions[idx] = next;
+                } else {
+                  reactions[idx] = { emoji: r.emoji, count: r.count + 1, reacted_by_me: true };
+                }
+              }
+            } else if (data.action === 'added') {
+              reactions.push({ emoji, count: 1, reacted_by_me: true });
+            }
+            return { ...m, reactions };
+          })
+        );
+      }
+      setReactionPickerMessageId(null);
+    },
+    [chatId]
+  );
+
+  const handleQuickReaction = useCallback(
+    (messageId: string, emoji: string) => {
+      handleToggleReaction(messageId, emoji);
+    },
+    [handleToggleReaction]
+  );
 
   const handleEmojiClick = useCallback(
     (emojiData: { emoji: string }) => {
@@ -370,6 +499,14 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                         isMe ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-white'
                       } hover:opacity-95 transition-opacity`}
                     >
+                      {msg.reply_to && (
+                        <div className={`mb-1.5 border-l-2 pl-2 ${isMe ? 'border-blue-400/60' : 'border-neutral-500/60'}`}>
+                          <p className="text-[10px] opacity-75">
+                            Replying to {msg.reply_to.sender_id === otherUser.id ? otherUser.username : 'you'}
+                          </p>
+                          <p className="truncate text-xs opacity-90">{msg.reply_to.content || '❤️'}</p>
+                        </div>
+                      )}
                       {msg.media_urls && msg.media_urls.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-1">
                           {msg.media_urls.map((url, idx) => (
@@ -397,11 +534,82 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                       {msg.content ? <p className="break-words text-sm">{msg.content}</p> : null}
                     </button>
                     {showTime && (
-                      <p
-                        className={`mt-1 text-[10px] ${isMe ? 'text-blue-200' : 'text-neutral-500'}`}
-                      >
-                        {formatRelativeTime(msg.created_at)}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <p className={`text-[10px] ${isMe ? 'text-blue-200' : 'text-neutral-500'}`}>
+                          {formatRelativeTime(msg.created_at)}
+                        </p>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReplyTo({ id: msg.id, content: msg.content, sender_id: msg.sender_id });
+                              setClickedMessageId(null);
+                              textareaRef.current?.focus();
+                            }}
+                            className="rounded px-1 py-0.5 text-[10px] text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                          >
+                            <Reply className="mr-0.5 inline h-3 w-3" />
+                            Reply
+                          </button>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReactionPickerMessageId((id) => (id === msg.id ? null : msg.id));
+                              }}
+                              className="rounded px-1 py-0.5 text-[10px] text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                            >
+                              <Smile className="mr-0.5 inline h-3 w-3" />
+                              React
+                            </button>
+                            {reactionPickerMessageId === msg.id && (
+                              <div
+                                ref={reactionPickerRef}
+                                className="absolute bottom-full left-0 z-50 mb-1 flex gap-0.5 rounded-xl border border-neutral-700 bg-neutral-900 p-1.5 shadow-xl"
+                              >
+                                {QUICK_REACTIONS.map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleQuickReaction(msg.id, emoji);
+                                    }}
+                                    className="rounded p-1.5 text-lg transition-colors hover:bg-neutral-700"
+                                    aria-label={`React with ${emoji}`}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {(msg.reactions?.length ?? 0) > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {msg.reactions!.map((r) => (
+                          <button
+                            key={r.emoji}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleReaction(msg.id, r.emoji);
+                            }}
+                            className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition-colors ${
+                              r.reacted_by_me
+                                ? 'bg-blue-600/30 text-blue-200'
+                                : 'bg-neutral-700/80 text-neutral-300 hover:bg-neutral-600'
+                            }`}
+                          >
+                            <span>{r.emoji}</span>
+                            {r.count > 1 && <span className="text-[10px]">{r.count}</span>}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -429,6 +637,22 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
         }}
         className="relative border-t border-neutral-800/80 p-2"
       >
+        {replyTo && (
+          <div className="mb-2 flex items-center justify-between rounded-lg border border-neutral-700 bg-neutral-900/80 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] text-neutral-400">Replying to {replyTo.sender_id === otherUser.id ? `@${otherUser.username ?? 'unknown'}` : 'your message'}</p>
+              <p className="truncate text-sm text-neutral-300">{replyTo.content || '❤️'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              className="ml-2 shrink-0 rounded p-1 text-neutral-500 transition-colors hover:bg-neutral-700 hover:text-white"
+              aria-label="Cancel reply"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {pendingImages.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1">
             {pendingImages.map((item, idx) => (

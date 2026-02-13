@@ -323,15 +323,31 @@ export const api = {
   async sendChatMessage(
     chatId: string,
     content: string,
-    mediaUrls?: string[]
+    mediaUrls?: string[],
+    replyToId?: string
   ): Promise<ApiResult<ApiChatMessage>> {
     return fetchApi<ApiChatMessage>(`/api/chats/${chatId}/messages`, {
       method: 'POST',
       body: JSON.stringify({
         content,
         ...(mediaUrls?.length ? { media_urls: mediaUrls } : {}),
+        ...(replyToId ? { reply_to_id: replyToId } : {}),
       }),
     });
+  },
+
+  async toggleChatReaction(
+    chatId: string,
+    messageId: string,
+    emoji: string
+  ): Promise<ApiResult<{ action: 'added' | 'removed'; emoji: string }>> {
+    return fetchApi<{ action: 'added' | 'removed'; emoji: string }>(
+      `/api/chats/${chatId}/messages/${messageId}/reactions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ emoji }),
+      }
+    );
   },
 
   async uploadChatImage(file: File): Promise<ApiResult<{ url: string }>> {

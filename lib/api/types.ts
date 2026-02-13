@@ -259,6 +259,20 @@ export interface ApiChatsResponse {
   hasMore: boolean;
 }
 
+/** Reply target info on a chat message */
+export interface ApiChatReplyTo {
+  id: string;
+  content: string;
+  sender_id: string;
+}
+
+/** Reaction on a chat message */
+export interface ApiChatReaction {
+  emoji: string;
+  count: number;
+  reacted_by_me: boolean;
+}
+
 /** Message from GET /api/chats/[id]/messages */
 export interface ApiChatMessage {
   id: string;
@@ -267,6 +281,8 @@ export interface ApiChatMessage {
   content: string;
   media_urls?: string[];
   created_at: string;
+  reply_to?: ApiChatReplyTo | null;
+  reactions?: ApiChatReaction[];
 }
 
 /** Response from GET /api/chats/[id]/messages */
