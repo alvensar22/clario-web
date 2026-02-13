@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { Crown } from 'lucide-react';
-import { NotificationBell } from '@/components/notifications/notification-bell';
+import { NotificationBellWithDropdown } from '@/components/notifications/notification-dropdown';
 import { Avatar } from '@/components/avatar/avatar';
 import { api } from '@/lib/api/client';
 
@@ -125,13 +125,7 @@ export function TopNav({ isPremium, username: usernameProp, avatarUrl: avatarUrl
           )}
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <Link
-            href="/notifications"
-            className="flex items-center justify-center rounded-full p-2 transition-colors hover:bg-neutral-800/80"
-            aria-label="Notifications"
-          >
-            <NotificationBell />
-          </Link>
+          <NotificationBellWithDropdown />
           {username && (
             <Link
               href={`/profile/${username}`}
