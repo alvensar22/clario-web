@@ -30,10 +30,23 @@ For push notifications in the browser:
 
 3. Use HTTPS in production (push requires a secure context).
 
-## Mobile
+## Mobile (Expo / clario-mobile)
+
+The **clario-mobile** app registers an Expo push token with this backend. When a like, comment, or follow is created, the server sends a push via Expo’s push service to the user’s device.
+
+1. **Database**: Run migration `015_expo_push_tokens.sql` (creates `expo_push_tokens` table):
+   ```bash
+   supabase db push
+   ```
+
+2. **Backend dependency**: Install Expo push server SDK in **clario-web**:
+   ```bash
+   npm install expo-server-sdk
+   ```
+
+3. **clario-mobile** calls `POST /api/notifications/push/expo` with body `{ token: "ExponentPushToken[...]" }` (Bearer auth) after the user logs in. No extra env vars are required on the server for Expo push.
 
 - **Web (PWA)**: Push works in mobile browsers that support Web Push (Chrome, Firefox, Safari 16.4+).
-- **Native apps**: For React Native/Expo, use Firebase Cloud Messaging (FCM) or OneSignal. This implementation is web-only; native would require a separate push provider integration.
 
 ## Notification Types
 
@@ -49,7 +62,8 @@ For push notifications in the browser:
 - `GET /api/notifications` – List notifications (paginated)
 - `GET /api/notifications/unread-count` – Unread count
 - `POST /api/notifications/read` – Mark read (body: `{ id?: string }`)
-- `POST /api/notifications/push/subscribe` – Register push subscription
+- `POST /api/notifications/push/subscribe` – Register Web Push subscription
+- `POST /api/notifications/push/expo` – Register Expo push token (clario-mobile)
 
 ## Realtime Troubleshooting
 

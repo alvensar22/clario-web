@@ -39,8 +39,9 @@ export async function createNotification(params: CreateNotificationParams): Prom
     comment_id: commentId ?? null,
   } as never);
 
-  // Send push notifications in background (don't await)
+  // Send push immediately in background (realtime); don't await so response isn't delayed
   sendPushToUser(userId, { type, actorId, postId, commentId }).catch(() => {});
+  sendExpoPushToUser(userId, { type, actorId, postId, commentId }).catch(() => {});
 }
 
 /**
@@ -113,4 +114,63 @@ async function sendPushToUser(
       )
     )
   );
+}
+
+/**
+ * Sends Expo Push notifications to all Expo tokens for the user (native app).
+ */
+async function sendExpoPushToUser(
+  userId: string,
+  payload: { type: NotificationType; actorId: string; postId?: string; commentId?: string }
+): Promise<void> {
+  const Expo = await import('expo-server-sdk').catch(() => null);
+  if (!Expo?.default) return;
+
+  let supabase: SupabaseClient;
+  try {
+    supabase = createServiceRoleClient();
+  } catch {
+    return;
+  }
+
+  const { data: tokens } = await supabase
+    .from('expo_push_tokens')
+    .select('token')
+    .eq('user_id', userId);
+
+  if (!tokens?.length) return;
+
+  const { data: actor } = await supabase
+    .from('users')
+    .select('username')
+    .eq('id', payload.actorId)
+    .maybeSingle();
+
+  const username = (actor as { username?: string | null } | null)?.username ?? 'Someone';
+  const titles: Record<NotificationType, string> = {
+    like: `${username} liked your post`,
+    comment: `${username} commented on your post`,
+    follow: `${username} started following you`,
+    mention: `${username} mentioned you`,
+  };
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  let url = baseUrl;
+  if (payload.postId) url = `${baseUrl}/post/${payload.postId}`;
+  else if (payload.actorId) url = `${baseUrl}/profile/${username}`;
+
+  const expo = new Expo.default();
+  const messages = tokens
+    .map((t) => t.token as string)
+    .filter((token) => Expo.default.isExpoPushToken(token))
+    .map((token) => ({
+      to: token,
+      title: titles[payload.type],
+      body: titles[payload.type],
+      data: { url, type: payload.type, postId: payload.postId },
+      sound: 'default',
+    }));
+
+  if (messages.length === 0) return;
+  await expo.sendPushNotificationsAsync(messages);
 }
