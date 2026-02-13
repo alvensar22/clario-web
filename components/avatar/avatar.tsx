@@ -1,4 +1,7 @@
+'use client';
+
 import Image from 'next/image';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface AvatarProps {
@@ -16,6 +19,15 @@ const sizeClasses = {
   xl: 'h-40 w-40 text-2xl',
 };
 
+function isValidUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function Avatar({
   src,
   alt = 'Avatar',
@@ -23,12 +35,16 @@ export function Avatar({
   className,
   fallback,
 }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
+
   const initials = fallback
     ?.split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  const useSrc = src && isValidUrl(src) && !imgError;
 
   return (
     <div
@@ -38,13 +54,15 @@ export function Avatar({
         className
       )}
     >
-      {src ? (
+      {useSrc ? (
         <Image
           src={src}
           alt={alt}
           fill
           className="rounded-full object-cover"
           sizes={`${size === 'sm' ? '32' : size === 'md' ? '40' : size === 'lg' ? '96' : size === 'xl' ? '160' : '40'}px`}
+          unoptimized={src.includes('supabase')}
+          onError={() => setImgError(true)}
         />
       ) : (
         <span className="font-medium">{initials || '?'}</span>
