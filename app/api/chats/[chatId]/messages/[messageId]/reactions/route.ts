@@ -70,7 +70,7 @@ export async function POST(
     .maybeSingle();
 
   if (existing) {
-    await supabase.from('chat_message_reactions').delete().eq('id', existing.id);
+    await supabase.from('chat_message_reactions').delete().eq('id', existing.id).eq('user_id', user.id);
     return NextResponse.json({ action: 'removed', emoji });
   }
 

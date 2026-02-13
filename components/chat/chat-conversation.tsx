@@ -37,6 +37,7 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const [imagePreview, setImagePreview] = useState<{ images: string[]; index: number } | null>(null);
   const [replyTo, setReplyTo] = useState<ApiChatReplyTo | null>(null);
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -328,6 +329,16 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     [handleToggleReaction]
   );
 
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setClickedMessageId(messageId);
+      setHighlightedMessageId(messageId);
+      setTimeout(() => setHighlightedMessageId(null), 2000);
+    }
+  }, []);
+
   const handleEmojiClick = useCallback(
     (emojiData: { emoji: string }) => {
       const ta = textareaRef.current;
@@ -472,10 +483,15 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                 }
               })();
 
+              const hasReactions = (msg.reactions?.length ?? 0) > 0;
+
               return (
                 <div
+                  id={`msg-${msg.id}`}
                   key={msg.id}
-                  className={`flex items-end gap-1.5 ${groupSpacing} ${isMe ? 'justify-end' : 'justify-start'}`}
+                  className={`flex items-end gap-1.5 ${groupSpacing} rounded-lg transition-colors duration-300 ${
+                    highlightedMessageId === msg.id ? 'bg-blue-400/10' : ''
+                  } ${isMe ? 'justify-end' : 'justify-start'}`}
                 >
                   {!isMe && (
                     <div className="h-8 w-8 shrink-0">
@@ -492,20 +508,28 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                   <div
                     className={`flex min-w-0 max-w-[75%] flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setClickedMessageId((id) => (id === msg.id ? null : msg.id))}
-                      className={`w-full text-left px-3 py-1.5 ${bubbleRadius} ${
-                        isMe ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-white'
-                      } hover:opacity-95 transition-opacity`}
-                    >
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setClickedMessageId((id) => (id === msg.id ? null : msg.id))}
+                        className={`w-full text-left px-3 py-1.5 ${bubbleRadius} ${
+                          isMe ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-white'
+                        } hover:opacity-95 transition-opacity`}
+                      >
                       {msg.reply_to && (
-                        <div className={`mb-1.5 border-l-2 pl-2 ${isMe ? 'border-blue-400/60' : 'border-neutral-500/60'}`}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollToMessage(msg.reply_to!.id);
+                          }}
+                          className={`mb-1.5 w-full cursor-pointer border-l-2 pl-2 text-left transition-opacity hover:opacity-90 ${isMe ? 'border-blue-400/60' : 'border-neutral-500/60'}`}
+                        >
                           <p className="text-[10px] opacity-75">
-                            Replying to {msg.reply_to.sender_id === otherUser.id ? otherUser.username : 'you'}
+                            Replying to {msg.reply_to!.sender_id === otherUser.id ? otherUser.username : 'you'}
                           </p>
-                          <p className="truncate text-xs opacity-90">{msg.reply_to.content || '❤️'}</p>
-                        </div>
+                          <p className="truncate text-xs opacity-90">{msg.reply_to!.content || '❤️'}</p>
+                        </button>
                       )}
                       {msg.media_urls && msg.media_urls.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-1">
@@ -532,7 +556,36 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                         </div>
                       )}
                       {msg.content ? <p className="break-words text-sm">{msg.content}</p> : null}
-                    </button>
+                      </button>
+                      {hasReactions && (
+                        <div
+                          className={`absolute bottom-0 right-0 z-10 flex translate-y-1/2 flex-wrap gap-1 justify-end`}
+                        >
+                          {msg.reactions!.map((r) => (
+                            <button
+                              key={r.emoji}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleReaction(msg.id, r.emoji);
+                              }}
+                              className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs shadow-lg transition-colors ${
+                                isMe
+                                  ? r.reacted_by_me
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-blue-600/80 text-blue-100 hover:bg-blue-600'
+                                  : r.reacted_by_me
+                                    ? 'bg-neutral-800 text-white'
+                                    : 'bg-neutral-800/90 text-neutral-300 hover:bg-neutral-800'
+                              }`}
+                            >
+                              <span>{r.emoji}</span>
+                              {r.count > 1 && <span className="text-[10px]">{r.count}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {showTime && (
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <p className={`text-[10px] ${isMe ? 'text-blue-200' : 'text-neutral-500'}`}>
@@ -567,7 +620,9 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                             {reactionPickerMessageId === msg.id && (
                               <div
                                 ref={reactionPickerRef}
-                                className="absolute bottom-full left-0 z-50 mb-1 flex gap-0.5 rounded-xl border border-neutral-700 bg-neutral-900 p-1.5 shadow-xl"
+                                className={`absolute bottom-full z-50 mb-1 flex gap-0.5 rounded-xl border border-neutral-700 bg-neutral-900 p-1.5 shadow-xl ${
+                                  isMe ? 'right-0 left-auto' : 'left-0'
+                                }`}
                               >
                                 {QUICK_REACTIONS.map((emoji) => (
                                   <button
@@ -587,28 +642,6 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                             )}
                           </div>
                         </div>
-                      </div>
-                    )}
-                    {(msg.reactions?.length ?? 0) > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {msg.reactions!.map((r) => (
-                          <button
-                            key={r.emoji}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleReaction(msg.id, r.emoji);
-                            }}
-                            className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition-colors ${
-                              r.reacted_by_me
-                                ? 'bg-blue-600/30 text-blue-200'
-                                : 'bg-neutral-700/80 text-neutral-300 hover:bg-neutral-600'
-                            }`}
-                          >
-                            <span>{r.emoji}</span>
-                            {r.count > 1 && <span className="text-[10px]">{r.count}</span>}
-                          </button>
-                        ))}
                       </div>
                     )}
                   </div>
