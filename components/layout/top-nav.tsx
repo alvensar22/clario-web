@@ -63,7 +63,7 @@ export function TopNav({ isPremium, username: usernameProp, avatarUrl: avatarUrl
 
   return (
     <header className="fixed left-56 right-0 top-0 z-30 border-b border-neutral-800/80 bg-black/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-[600px] items-center justify-between px-4">
+      <div className="flex h-14 w-full items-center justify-between px-4">
         <div className="min-w-0 flex-1" />
         <div className="relative shrink-0" ref={dropdownRef}>
           <button
