@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api/client';
-import { useChat } from './chat-provider';
+import { useChat, CHAT_NEW_MESSAGE_EVENT } from './chat-provider';
 import type { ApiChat } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { ChatIcon } from './chat-icon';
@@ -34,6 +34,15 @@ export function ChatDropdown({ isOpen, onClose, anchorRef }: ChatDropdownProps) 
 
   useEffect(() => {
     if (isOpen) fetchChats();
+  }, [isOpen, fetchChats]);
+
+  // Realtime: refresh when new messages arrive (e.g. dropdown is open)
+  useEffect(() => {
+    const handler = () => {
+      if (isOpen) fetchChats();
+    };
+    window.addEventListener(CHAT_NEW_MESSAGE_EVENT, handler);
+    return () => window.removeEventListener(CHAT_NEW_MESSAGE_EVENT, handler);
   }, [isOpen, fetchChats]);
 
   useEffect(() => {

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api/client';
-import { useChat } from './chat-provider';
+import { useChat, CHAT_NEW_MESSAGE_EVENT } from './chat-provider';
 import type { ApiChat } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { formatRelativeTime } from '@/lib/utils';
@@ -34,8 +34,16 @@ export function ChatList({ initialChats, initialHasMore }: ChatListProps) {
     chatCtx?.refreshChatUnreadCount();
   }, [chatCtx]);
 
+  // Realtime: refresh when new messages arrive
   useEffect(() => {
-    const interval = setInterval(refresh, 15000);
+    const handler = () => refresh();
+    window.addEventListener(CHAT_NEW_MESSAGE_EVENT, handler);
+    return () => window.removeEventListener(CHAT_NEW_MESSAGE_EVENT, handler);
+  }, [refresh]);
+
+  // Fallback polling in case Realtime disconnects
+  useEffect(() => {
+    const interval = setInterval(refresh, 60000);
     return () => clearInterval(interval);
   }, [refresh]);
 

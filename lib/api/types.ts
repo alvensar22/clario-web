@@ -289,6 +289,10 @@ export interface ApiChatMessage {
 export interface ApiChatMessagesResponse {
   messages: ApiChatMessage[];
   hasMore: boolean;
+  /** Other participant's last_read_at for seen status on our messages */
+  recipient_last_read_at?: string | null;
+  /** Our last_read_at for seen status on their messages */
+  my_last_read_at?: string | null;
 }
 
 /** Response from GET /api/chats/unread-count */

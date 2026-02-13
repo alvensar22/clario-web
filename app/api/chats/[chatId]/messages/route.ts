@@ -1,4 +1,4 @@
-import { createClientFromRequest } from '@/lib/supabase/server';
+import { createClientFromRequest, createServiceRoleClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 const DEFAULT_LIMIT = 50;
@@ -59,6 +59,30 @@ export async function GET(
 
   const rawMessages = (rows ?? []).reverse();
   const messageIds = rawMessages.map((m) => m.id);
+
+  // Recipient's last_read_at (other participant) for seen status on our messages
+  // Our last_read_at for seen status on their messages (have we read them?)
+  let recipientLastReadAt: string | null = null;
+  let myLastReadAt: string | null = null;
+  const { data: myPart } = await supabase
+    .from('chat_participants')
+    .select('last_read_at')
+    .eq('chat_id', chatId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (myPart) {
+    myLastReadAt = (myPart as { last_read_at: string | null }).last_read_at;
+  }
+  const adminClient = createServiceRoleClient();
+  const { data: otherParticipant } = await adminClient
+    .from('chat_participants')
+    .select('last_read_at')
+    .eq('chat_id', chatId)
+    .neq('user_id', user.id)
+    .maybeSingle();
+  if (otherParticipant) {
+    recipientLastReadAt = (otherParticipant as { last_read_at: string | null }).last_read_at;
+  }
   const replyToIds = [...new Set(rawMessages.map((m) => (m as { reply_to_id?: string }).reply_to_id).filter(Boolean))] as string[];
 
   let replyToMap: Record<string, { id: string; content: string; sender_id: string }> = {};
@@ -111,6 +135,8 @@ export async function GET(
   return NextResponse.json({
     messages,
     hasMore: rawMessages.length === limit,
+    recipient_last_read_at: recipientLastReadAt,
+    my_last_read_at: myLastReadAt,
   });
 }
 

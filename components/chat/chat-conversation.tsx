@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Send, Minimize2, Maximize2, X, Heart, Smile, ImagePlus, Reply } from 'lucide-react';
+import { Send, Minimize2, Maximize2, X, Heart, Smile, ImagePlus, Reply, Check, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/lib/api/client';
 import { useChat } from './chat-provider';
@@ -30,6 +30,8 @@ interface ChatConversationProps {
 
 export function ChatConversation({ chatId, otherUser, onClose }: ChatConversationProps) {
   const [messages, setMessages] = useState<ApiChatMessage[]>([]);
+  const [recipientLastReadAt, setRecipientLastReadAt] = useState<string | null>(null);
+  const [myLastReadAt, setMyLastReadAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState('');
@@ -62,8 +64,11 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     if (data?.messages) {
       setMessages(data.messages);
     }
+    setRecipientLastReadAt(data?.recipient_last_read_at ?? null);
+    setMyLastReadAt(data?.my_last_read_at ?? null);
     setLoading(false);
     api.markChatRead(chatId);
+    setMyLastReadAt(new Date().toISOString()); // We just viewed, so we've read all
     chatCtx?.refreshChatUnreadCount();
   }, [chatId, chatCtx]);
 
@@ -100,6 +105,7 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
             return [...prev, msg];
           });
           api.markChatRead(chatId);
+          setMyLastReadAt(new Date().toISOString());
           chatCtx?.refreshChatUnreadCount();
         }
       )
@@ -139,6 +145,21 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
       .on(
         'postgres_changes',
         {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'chat_participants',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        (payload) => {
+          const row = payload.new as { user_id: string; last_read_at: string | null };
+          if (row.user_id === otherUser.id) {
+            setRecipientLastReadAt(row.last_read_at);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
           event: 'DELETE',
           schema: 'public',
           table: 'chat_message_reactions',
@@ -171,7 +192,7 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [chatId, chatCtx, currentUserId]);
+  }, [chatId, chatCtx, currentUserId, otherUser.id]);
 
   const handleSend = useCallback(async () => {
     const content = input.trim();
@@ -693,9 +714,50 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                       )}
                     </div>
                     {showTime && (
-                      <p className={`mt-1 text-[10px] ${isMe ? 'text-blue-200' : 'text-neutral-500'}`}>
-                        {formatRelativeTime(msg.created_at)}
-                      </p>
+                      <div className="mt-1 flex items-center gap-1">
+                        <p className={`text-[10px] ${isMe ? 'text-blue-200' : 'text-neutral-500'}`}>
+                          {formatRelativeTime(msg.created_at)}
+                        </p>
+                        {isLastInGroup && (() => {
+                          if (isMe) {
+                            const seen =
+                              recipientLastReadAt &&
+                              new Date(recipientLastReadAt) >= new Date(msg.created_at);
+                            const justSent =
+                              !seen &&
+                              (Date.now() - new Date(msg.created_at).getTime()) < 10_000;
+                            return (
+                              <span
+                                className="shrink-0"
+                                aria-label={seen ? 'Seen' : justSent ? 'Sent' : 'Delivered'}
+                              >
+                                {seen ? (
+                                  <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                                ) : justSent ? (
+                                  <Check className="h-3.5 w-3.5 text-neutral-400" />
+                                ) : (
+                                  <CheckCheck className="h-3.5 w-3.5 text-neutral-400" />
+                                )}
+                              </span>
+                            );
+                          }
+                          const seen =
+                            myLastReadAt &&
+                            new Date(myLastReadAt) >= new Date(msg.created_at);
+                          return (
+                            <span
+                              className="shrink-0"
+                              aria-label={seen ? 'Seen' : 'Delivered'}
+                            >
+                              {seen ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                              ) : (
+                                <CheckCheck className="h-3.5 w-3.5 text-neutral-400" />
+                              )}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     )}
                   </div>
                 </div>
