@@ -24,6 +24,10 @@ import type {
   ApiActivityResponse,
   ApiNotificationsResponse,
   ApiNotificationUnreadCount,
+  ApiChatsResponse,
+  ApiChatMessagesResponse,
+  ApiChatMessage,
+  ApiChatUnreadCount,
 } from '@/lib/api/types';
 
 const getBaseUrl = (): string => {
@@ -293,5 +297,37 @@ export const api = {
         keys: payload.keys,
       }),
     });
+  },
+
+  async getChats(limit = 20, offset = 0): Promise<ApiResult<ApiChatsResponse>> {
+    return fetchApi<ApiChatsResponse>(`/api/chats?limit=${limit}&offset=${offset}`);
+  },
+
+  async getChatUnreadCount(): Promise<ApiResult<ApiChatUnreadCount>> {
+    return fetchApi<ApiChatUnreadCount>('/api/chats/unread-count');
+  },
+
+  async createOrGetChat(userId: string): Promise<ApiResult<{ chatId: string }>> {
+    return fetchApi<{ chatId: string }>('/api/chats', {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  },
+
+  async getChatMessages(chatId: string, limit = 50, offset = 0): Promise<ApiResult<ApiChatMessagesResponse>> {
+    return fetchApi<ApiChatMessagesResponse>(
+      `/api/chats/${chatId}/messages?limit=${limit}&offset=${offset}`
+    );
+  },
+
+  async sendChatMessage(chatId: string, content: string): Promise<ApiResult<ApiChatMessage>> {
+    return fetchApi<ApiChatMessage>(`/api/chats/${chatId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  async markChatRead(chatId: string): Promise<ApiResult<{ success: boolean }>> {
+    return fetchApi<{ success: boolean }>(`/api/chats/${chatId}/read`, { method: 'POST' });
   },
 };

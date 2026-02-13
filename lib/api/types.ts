@@ -243,3 +243,38 @@ export interface ApiNotificationsResponse {
 export interface ApiNotificationUnreadCount {
   count: number;
 }
+
+/** Chat list item from GET /api/chats */
+export interface ApiChat {
+  id: string;
+  other_user: { id: string; username: string | null; avatar_url: string | null };
+  last_message: { content: string; created_at: string; sender_id: string } | null;
+  unread_count: number;
+  updated_at: string;
+}
+
+/** Response from GET /api/chats */
+export interface ApiChatsResponse {
+  chats: ApiChat[];
+  hasMore: boolean;
+}
+
+/** Message from GET /api/chats/[id]/messages */
+export interface ApiChatMessage {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+}
+
+/** Response from GET /api/chats/[id]/messages */
+export interface ApiChatMessagesResponse {
+  messages: ApiChatMessage[];
+  hasMore: boolean;
+}
+
+/** Response from GET /api/chats/unread-count */
+export interface ApiChatUnreadCount {
+  count: number;
+}

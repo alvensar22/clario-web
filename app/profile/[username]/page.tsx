@@ -4,6 +4,7 @@ import { TopNav } from '@/components/layout/top-nav';
 import { Avatar } from '@/components/avatar/avatar';
 import { Button } from '@/components/ui/button';
 import { ProfileFollowButton } from '@/components/profile/profile-follow-button';
+import { ProfileMessageButton } from '@/components/profile/profile-message-button';
 import { ProfilePostsList } from '@/components/profile/profile-posts-list';
 import { PremiumBadge } from '@/components/premium/premium-badge';
 import Link from 'next/link';
@@ -113,7 +114,7 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
                 )}
               </div>
 
-              <div className="mb-6">
+              <div className="mb-6 flex flex-wrap gap-2">
                 <ProfileFollowButton
                   username={username}
                   initialFollowing={follow.following}
@@ -121,6 +122,13 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
                   initialFollowingCount={follow.followingCount}
                   isOwnProfile={isOwnProfile}
                 />
+                {!isOwnProfile && session?.user && (
+                  <ProfileMessageButton
+                    userId={userProfile.id}
+                    username={userProfile.username}
+                    avatarUrl={userProfile.avatar_url}
+                  />
+                )}
               </div>
 
               {isOwnProfile && (

@@ -4,6 +4,8 @@ import "./globals.css";
 import { PostComposerProvider } from "@/components/post/post-composer-provider";
 import { PushSetup } from "@/components/notifications/push-setup";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
+import { ChatProvider } from "@/components/chat/chat-provider";
+import { ChatPanel } from "@/components/chat/chat-panel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,8 +34,11 @@ export default function RootLayout({
       >
         <PostComposerProvider>
           <NotificationProvider>
-            <PushSetup />
-            {children}
+            <ChatProvider>
+              <PushSetup />
+              {children}
+              <ChatPanel />
+            </ChatProvider>
           </NotificationProvider>
         </PostComposerProvider>
       </body>

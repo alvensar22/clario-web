@@ -21,6 +21,7 @@ import type {
   ApiActivityResponse,
   ApiNotificationsResponse,
   ApiNotificationUnreadCount,
+  ApiChatsResponse,
 } from '@/lib/api/types';
 import { cookies } from 'next/headers';
 
@@ -205,6 +206,13 @@ export async function getApiClient() {
 
     async getNotificationUnreadCount(): Promise<ApiResult<ApiNotificationUnreadCount>> {
       return fetchApi<ApiNotificationUnreadCount>('/api/notifications/unread-count', { cookieHeader });
+    },
+
+    async getChats(limit = 20, offset = 0): Promise<ApiResult<ApiChatsResponse>> {
+      return fetchApi<ApiChatsResponse>(
+        `/api/chats?limit=${limit}&offset=${offset}`,
+        { cookieHeader }
+      );
     },
   };
 }
