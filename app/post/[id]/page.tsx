@@ -45,6 +45,7 @@ export default async function PostPage({ params }: PostPageProps) {
             post={post}
             variant="feed"
             currentUserId={session.user.id}
+            priority
           />
         </div>
       </main>

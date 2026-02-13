@@ -12,11 +12,14 @@ export function ChatPanel() {
 
   return (
     <div className="fixed bottom-4 right-4 z-40 flex max-w-[calc(100vw-2rem)] flex-row items-end justify-end gap-2 overflow-x-auto">
-      {openChats.map((chat) => (
+      {openChats.map((chat, index) => (
         <ChatConversation
           key={chat.id}
           chatId={chat.id}
           otherUser={chat.other_user}
+          initialUnreadCount={chat.unread_count}
+          isFocused={index === openChats.length - 1}
+          onFocus={() => chatCtx?.focusChat(chat.id)}
           onClose={() => chatCtx?.closeChat(chat.id)}
         />
       ))}

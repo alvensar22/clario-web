@@ -64,12 +64,13 @@ export function FeedList({ posts, currentUserId, feedType }: FeedListProps) {
   return (
     <>
       <ul className="divide-y divide-neutral-800/60">
-        {posts.map((post) => (
+        {posts.map((post, index) => (
           <li key={post.id}>
             <PostCard
               post={post}
               currentUserId={currentUserId}
               onDelete={() => router.refresh()}
+              priority={index === 0}
             />
           </li>
         ))}

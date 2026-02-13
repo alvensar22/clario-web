@@ -25,10 +25,20 @@ const EmojiPicker = dynamic(
 interface ChatConversationProps {
   chatId: string;
   otherUser: { id: string; username: string | null; avatar_url: string | null };
+  initialUnreadCount?: number;
+  isFocused?: boolean;
+  onFocus?: () => void;
   onClose: () => void;
 }
 
-export function ChatConversation({ chatId, otherUser, onClose }: ChatConversationProps) {
+export function ChatConversation({
+  chatId,
+  otherUser,
+  initialUnreadCount = 0,
+  isFocused = true,
+  onFocus,
+  onClose,
+}: ChatConversationProps) {
   const [messages, setMessages] = useState<ApiChatMessage[]>([]);
   const [recipientLastReadAt, setRecipientLastReadAt] = useState<string | null>(null);
   const [myLastReadAt, setMyLastReadAt] = useState<string | null>(null);
@@ -42,6 +52,7 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pendingImages, setPendingImages] = useState<
     { id: string; preview: string; url?: string; uploading: boolean }[]
@@ -51,6 +62,8 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const reactionPickerRef = useRef<HTMLDivElement>(null);
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
   const chatCtx = useChat();
 
   useEffect(() => {
@@ -76,6 +89,14 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     loadMessages();
   }, [loadMessages]);
 
+  // Clear unread when this panel becomes focused
+  useEffect(() => {
+    if (isFocused && unreadCount > 0) {
+      setUnreadCount(0);
+      api.markChatRead(chatId);
+    }
+  }, [isFocused, chatId]); // eslint-disable-line react-hooks/exhaustive-deps -- only clear when focus changes
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -94,6 +115,9 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
         },
         async (payload) => {
           const row = payload.new as ApiChatMessage & { reply_to_id?: string };
+          const fromThem = row.sender_id === otherUser.id;
+          const focused = isFocusedRef.current;
+
           setMessages((prev) => {
             if (prev.some((m) => m.id === row.id)) return prev;
             const replyTo = row.reply_to_id ? prev.find((m) => m.id === row.reply_to_id) : null;
@@ -104,8 +128,15 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
             };
             return [...prev, msg];
           });
-          api.markChatRead(chatId);
-          setMyLastReadAt(new Date().toISOString());
+
+          if (fromThem) {
+            if (focused) {
+              api.markChatRead(chatId);
+              setMyLastReadAt(new Date().toISOString());
+            } else {
+              setUnreadCount((c) => c + 1);
+            }
+          }
           chatCtx?.refreshChatUnreadCount();
         }
       )
@@ -387,16 +418,34 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     <div className="flex items-center gap-3 border-b border-neutral-800/80 px-4 py-3">
       <Link
         href={`/profile/${name}`}
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isFocused) {
+            e.preventDefault();
+            onFocus?.();
+          } else {
+            onClose();
+          }
+        }}
         className="flex min-w-0 flex-1 items-center gap-3"
       >
-        <Avatar src={otherUser.avatar_url ?? undefined} fallback={name} size="sm" />
+        <div className="relative">
+          <Avatar src={otherUser.avatar_url ?? undefined} fallback={name} size="sm" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
         <span className="truncate font-medium text-white">@{name}</span>
       </Link>
       <div className="flex shrink-0 gap-1">
         <button
           type="button"
-          onClick={() => setIsMinimized(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMinimized(true);
+          }}
           className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
           aria-label="Minimize"
         >
@@ -404,7 +453,10 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
         </button>
         <button
           type="button"
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
           aria-label="Close"
         >
@@ -417,7 +469,14 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const minimizedHeader = (
     <div className="flex items-center gap-3 border-b-0 px-4 py-3">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Avatar src={otherUser.avatar_url ?? undefined} fallback={name} size="sm" />
+        <div className="relative">
+          <Avatar src={otherUser.avatar_url ?? undefined} fallback={name} size="sm" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
         <span className="truncate font-medium text-white">@{name}</span>
       </div>
       <div className="flex shrink-0 gap-1">
@@ -451,8 +510,11 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     return (
       <div
         className="flex w-[280px] cursor-pointer flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl"
-        onClick={() => setIsMinimized(false)}
-        onKeyDown={(e) => e.key === 'Enter' && setIsMinimized(false)}
+        onClick={() => {
+          setIsMinimized(false);
+          onFocus?.();
+        }}
+        onKeyDown={(e) => e.key === 'Enter' && (setIsMinimized(false), onFocus?.())}
         role="button"
         tabIndex={0}
         aria-label="Expand chat"
@@ -582,10 +644,12 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                         </div>
                       )}
                     <div className="relative">
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setClickedMessageId((id) => (id === msg.id ? null : msg.id))}
-                        className={`w-full text-left px-3 py-1.5 ${bubbleRadius} ${
+                        onKeyDown={(e) => e.key === 'Enter' && setClickedMessageId((id) => (id === msg.id ? null : msg.id))}
+                        className={`w-full cursor-pointer text-left px-3 py-1.5 ${bubbleRadius} ${
                           isMe ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-white'
                         } hover:opacity-95 transition-opacity`}
                       >
@@ -629,7 +693,7 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                         </div>
                       )}
                       {msg.content ? <p className="break-words text-sm">{msg.content}</p> : null}
-                      </button>
+                      </div>
                       {hasReactions && (
                         <div
                           className={`absolute bottom-0 z-10 flex translate-y-1/2 flex-wrap gap-1 ${

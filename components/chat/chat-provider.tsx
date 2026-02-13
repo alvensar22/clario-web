@@ -15,6 +15,7 @@ interface ChatContextValue {
   openChats: ApiChat[];
   openChat: (chat: ApiChat) => void;
   closeChat: (chatId: string) => void;
+  focusChat: (chatId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -44,6 +45,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const closeChat = useCallback((chatId: string) => {
     setOpenChats((prev) => prev.filter((c) => c.id !== chatId));
+  }, []);
+
+  const focusChat = useCallback((chatId: string) => {
+    setOpenChats((prev) => {
+      const chat = prev.find((c) => c.id === chatId);
+      if (!chat) return prev;
+      const rest = prev.filter((c) => c.id !== chatId);
+      return [...rest, chat];
+    });
   }, []);
 
   useEffect(() => {
@@ -99,6 +109,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         openChats,
         openChat,
         closeChat,
+        focusChat,
       }}
     >
       {children}

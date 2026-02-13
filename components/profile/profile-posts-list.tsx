@@ -14,13 +14,14 @@ export function ProfilePostsList({ posts, currentUserId }: ProfilePostsListProps
 
   return (
     <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
-      {posts.map((post) => (
+      {posts.map((post, index) => (
         <li key={post.id}>
           <PostCard
             post={post}
             variant="profile"
             currentUserId={currentUserId}
             onDelete={() => router.refresh()}
+            priority={index === 0}
           />
         </li>
       ))}

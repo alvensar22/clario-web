@@ -20,6 +20,8 @@ interface PostCardProps {
   currentUserId?: string | null;
   /** Called after post is deleted (e.g. router.refresh) */
   onDelete?: (postId: string) => void;
+  /** Mark first image as LCP priority (use for above-the-fold posts) */
+  priority?: boolean;
 }
 
 function getPostMediaUrls(post: ApiPost): string[] {
@@ -28,7 +30,7 @@ function getPostMediaUrls(post: ApiPost): string[] {
   return [];
 }
 
-export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: PostCardProps) {
+export function PostCard({ post, variant = 'feed', currentUserId, onDelete, priority = false }: PostCardProps) {
   const router = useRouter();
   const [previewState, setPreviewState] = useState<{ open: true; index: number } | { open: false }>({ open: false });
   const username = post.author?.username ?? 'unknown';
@@ -124,6 +126,7 @@ export function PostCard({ post, variant = 'feed', currentUserId, onDelete }: Po
                         className="h-full w-full object-cover"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         unoptimized={url.includes('supabase')}
+                        priority={priority && i === 0}
                       />
                     </span>
                   </button>
