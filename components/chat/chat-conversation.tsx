@@ -2,13 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Send, Minimize2, Maximize2, X, Heart } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Send, Minimize2, Maximize2, X, Heart, Smile } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/lib/api/client';
 import { useChat } from './chat-provider';
 import type { ApiChatMessage } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
 import { formatRelativeTime } from '@/lib/utils';
+
+import { Theme as EmojiTheme } from 'emoji-picker-react';
+
+const EmojiPicker = dynamic(
+  () => import('emoji-picker-react').then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface ChatConversationProps {
   chatId: string;
@@ -23,8 +31,10 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const [input, setInput] = useState('');
   const [clickedMessageId, setClickedMessageId] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const chatCtx = useChat();
 
   const loadMessages = useCallback(async () => {
@@ -109,6 +119,41 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
       ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
     }
   }, [input]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        showEmojiPicker &&
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(e.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEmojiPicker]);
+
+  const handleEmojiClick = useCallback(
+    (emojiData: { emoji: string }) => {
+      const ta = textareaRef.current;
+      if (ta) {
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const before = input.slice(0, start);
+        const after = input.slice(end);
+        setInput(before + emojiData.emoji + after);
+        requestAnimationFrame(() => {
+          ta.focus();
+          const pos = start + emojiData.emoji.length;
+          ta.setSelectionRange(pos, pos);
+        });
+      } else {
+        setInput((prev) => prev + emojiData.emoji);
+      }
+    },
+    [input]
+  );
 
   const name = otherUser.username ?? 'Unknown';
 
@@ -283,9 +328,34 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
           e.preventDefault();
           if (input.trim()) handleSend();
         }}
-        className="border-t border-neutral-800/80 p-2"
+        className="relative border-t border-neutral-800/80 p-2"
       >
+        {showEmojiPicker && (
+          <div
+            ref={emojiPickerRef}
+            className="absolute bottom-full left-2 mb-1 overflow-hidden rounded-xl shadow-xl"
+          >
+            <EmojiPicker
+              onEmojiClick={handleEmojiClick}
+              theme={EmojiTheme.DARK}
+              width={320}
+              height={360}
+            />
+          </div>
+        )}
         <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker((v) => !v)}
+            className={`flex shrink-0 items-center justify-center p-2.5 transition-colors ${
+              showEmojiPicker
+                ? 'text-blue-500'
+                : 'text-neutral-400 hover:text-neutral-300'
+            }`}
+            aria-label="Insert emoji"
+          >
+            <Smile className="h-5 w-5" />
+          </button>
           <textarea
             ref={textareaRef}
             value={input}
