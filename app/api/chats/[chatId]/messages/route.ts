@@ -48,7 +48,7 @@ export async function GET(
 
   const { data: rows, error } = await supabase
     .from('chat_messages')
-    .select('id, chat_id, sender_id, content, created_at')
+    .select('id, chat_id, sender_id, content, media_urls, created_at')
     .eq('chat_id', chatId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -92,7 +92,7 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  let body: { content?: string };
+  let body: { content?: string; media_urls?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -100,18 +100,27 @@ export async function POST(
   }
 
   const content = typeof body.content === 'string' ? body.content.trim() : '';
-  if (!content) {
-    return NextResponse.json({ error: 'Content required' }, { status: 400 });
+  const mediaUrls = Array.isArray(body.media_urls)
+    ? body.media_urls.filter((u): u is string => typeof u === 'string')
+    : [];
+
+  if (!content && mediaUrls.length === 0) {
+    return NextResponse.json({ error: 'Content or images required' }, { status: 400 });
+  }
+
+  const insertData: { chat_id: string; sender_id: string; content: string; media_urls?: unknown } = {
+    chat_id: chatId,
+    sender_id: user.id,
+    content: content || '',
+  };
+  if (mediaUrls.length > 0) {
+    insertData.media_urls = mediaUrls;
   }
 
   const { data: msg, error } = await supabase
     .from('chat_messages')
-    .insert({
-      chat_id: chatId,
-      sender_id: user.id,
-      content,
-    } as never)
-    .select('id, chat_id, sender_id, content, created_at')
+    .insert(insertData as never)
+    .select('id, chat_id, sender_id, content, media_urls, created_at')
     .single();
 
   if (error) {

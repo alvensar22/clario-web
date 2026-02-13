@@ -265,6 +265,7 @@ export interface ApiChatMessage {
   chat_id: string;
   sender_id: string;
   content: string;
+  media_urls?: string[];
   created_at: string;
 }
 

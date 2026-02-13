@@ -320,11 +320,40 @@ export const api = {
     );
   },
 
-  async sendChatMessage(chatId: string, content: string): Promise<ApiResult<ApiChatMessage>> {
+  async sendChatMessage(
+    chatId: string,
+    content: string,
+    mediaUrls?: string[]
+  ): Promise<ApiResult<ApiChatMessage>> {
     return fetchApi<ApiChatMessage>(`/api/chats/${chatId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({
+        content,
+        ...(mediaUrls?.length ? { media_urls: mediaUrls } : {}),
+      }),
     });
+  },
+
+  async uploadChatImage(file: File): Promise<ApiResult<{ url: string }>> {
+    const base = getBaseUrl();
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(`${base}/api/chats/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    const text = await res.text();
+    let data: { url: string } | undefined;
+    let error: string | undefined;
+    try {
+      const parsed = (text ? JSON.parse(text) : {}) as { url?: string; error?: string };
+      if (res.ok) data = parsed as { url: string };
+      else error = parsed.error ?? res.statusText;
+    } catch {
+      error = text || res.statusText;
+    }
+    return { data, error, status: res.status };
   },
 
   async markChatRead(chatId: string): Promise<ApiResult<{ success: boolean }>> {

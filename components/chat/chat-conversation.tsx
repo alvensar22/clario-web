@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Send, Minimize2, Maximize2, X, Heart, Smile } from 'lucide-react';
+import Image from 'next/image';
+import { Send, Minimize2, Maximize2, X, Heart, Smile, ImagePlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/lib/api/client';
 import { useChat } from './chat-provider';
 import type { ApiChatMessage } from '@/lib/api/types';
 import { Avatar } from '@/components/avatar/avatar';
+import { ImagePreview } from '@/components/ui/image-preview';
 import { formatRelativeTime } from '@/lib/utils';
 
 import { Theme as EmojiTheme } from 'emoji-picker-react';
@@ -30,9 +32,14 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState('');
   const [clickedMessageId, setClickedMessageId] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<{ images: string[]; index: number } | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [pendingImages, setPendingImages] = useState<
+    { id: string; preview: string; url?: string; uploading: boolean }[]
+  >([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const chatCtx = useChat();
@@ -86,18 +93,76 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
 
   const handleSend = useCallback(async () => {
     const content = input.trim();
-    if (!content || sending) return;
+    const hasContent = content || pendingImages.length > 0;
+    const allUploaded = pendingImages.every((p) => p.url);
+    if (!hasContent || sending || !allUploaded) return;
 
     setSending(true);
+    const urls = pendingImages.map((p) => p.url).filter((u): u is string => !!u);
+    setPendingImages([]);
+    const { data } = await api.sendChatMessage(chatId, content || '', urls.length ? urls : undefined);
     setInput('');
-    const { data } = await api.sendChatMessage(chatId, content);
     setSending(false);
 
     if (data) {
       setMessages((prev) => [...prev, data]);
       chatCtx?.refreshChatUnreadCount();
     }
-  }, [chatId, input, sending, chatCtx]);
+  }, [chatId, input, pendingImages, sending, chatCtx]);
+
+  const MAX_IMAGES = 5;
+
+  const handleImageChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files?.length) return;
+      const remaining = MAX_IMAGES - pendingImages.length;
+      const toAdd = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, remaining);
+      if (toAdd.length === 0) return;
+
+      const newItems = toAdd.map((file) => ({
+        id: crypto.randomUUID() as string,
+        preview: URL.createObjectURL(file),
+        uploading: true as const,
+      }));
+      setPendingImages((prev) => [...prev, ...newItems].slice(0, MAX_IMAGES));
+      e.target.value = '';
+
+      for (let i = 0; i < toAdd.length; i++) {
+        const file = toAdd[i];
+        const itemId = newItems[i]?.id;
+        if (!file || !itemId) continue;
+        const { data } = await api.uploadChatImage(file);
+        setPendingImages((prev) =>
+          prev.map((p) =>
+            p.id === itemId && p.uploading
+              ? { ...p, url: data?.url, uploading: false }
+              : p
+          )
+        );
+      }
+    },
+    [pendingImages.length]
+  );
+
+  const pendingImagesRef = useRef(pendingImages);
+  pendingImagesRef.current = pendingImages;
+
+  const removePendingImage = useCallback((index: number) => {
+    setPendingImages((prev) => {
+      const item = prev[index];
+      if (item?.preview?.startsWith('blob:')) URL.revokeObjectURL(item.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      pendingImagesRef.current.forEach((p) => {
+        if (p.preview?.startsWith('blob:')) URL.revokeObjectURL(p.preview);
+      });
+    };
+  }, []);
 
   const handleSendLike = useCallback(async () => {
     if (sending) return;
@@ -305,7 +370,31 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
                         isMe ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-white'
                       } hover:opacity-95 transition-opacity`}
                     >
-                      <p className="break-words text-sm">{msg.content}</p>
+                      {msg.media_urls && msg.media_urls.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-1">
+                          {msg.media_urls.map((url, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImagePreview({ images: msg.media_urls ?? [], index: idx });
+                              }}
+                              className="block shrink-0 overflow-hidden rounded-lg transition-opacity hover:opacity-90"
+                            >
+                              <Image
+                                src={url}
+                                alt=""
+                                width={120}
+                                height={120}
+                                className="h-20 w-20 object-cover"
+                                unoptimized={url.includes('supabase')}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {msg.content ? <p className="break-words text-sm">{msg.content}</p> : null}
                     </button>
                     {showTime && (
                       <p
@@ -323,13 +412,52 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
         )}
       </div>
 
+      {imagePreview && (
+        <ImagePreview
+          images={imagePreview.images}
+          initialIndex={imagePreview.index}
+          alt="Chat image"
+          onClose={() => setImagePreview(null)}
+        />
+      )}
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (input.trim()) handleSend();
+          if ((input.trim() || pendingImages.length > 0) && pendingImages.every((p) => p.url))
+            handleSend();
         }}
         className="relative border-t border-neutral-800/80 p-2"
       >
+        {pendingImages.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {pendingImages.map((item, idx) => (
+              <div key={item.id} className="relative">
+                <Image
+                  src={item.url ?? item.preview}
+                  alt=""
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 rounded-lg object-cover"
+                  unoptimized={item.preview.startsWith('blob:') || item.url?.includes('supabase')}
+                />
+                {item.uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-400 border-t-white" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removePendingImage(idx)}
+                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-700 text-white hover:bg-neutral-600"
+                  aria-label="Remove image"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         {showEmojiPicker && (
           <div
             ref={emojiPickerRef}
@@ -344,6 +472,23 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
           </div>
         )}
         <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleImageChange}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={pendingImages.length >= MAX_IMAGES}
+            className="flex shrink-0 items-center justify-center p-2.5 text-neutral-400 transition-colors hover:text-neutral-300 disabled:opacity-50"
+            aria-label="Add image"
+          >
+            <ImagePlus className="h-5 w-5" />
+          </button>
           <button
             type="button"
             onClick={() => setShowEmojiPicker((v) => !v)}
@@ -370,10 +515,10 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
             rows={1}
             className="min-h-[42px] max-h-[120px] flex-1 resize-none overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
           />
-          {input.trim() ? (
+          {input.trim() || pendingImages.length > 0 ? (
             <button
               type="submit"
-              disabled={sending}
+              disabled={sending || pendingImages.some((p) => p.uploading)}
               className="flex shrink-0 items-center justify-center p-2.5 text-blue-500 transition-opacity hover:text-blue-400 hover:opacity-90 disabled:opacity-50"
               aria-label="Send message"
             >

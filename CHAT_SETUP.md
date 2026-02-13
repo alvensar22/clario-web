@@ -8,7 +8,7 @@ Run migrations to create chat tables and enable Realtime:
 
 ```bash
 supabase db push
-# Migrations: 016_create_chats.sql, 017_enable_realtime_chat_messages.sql
+# Migrations: 016_create_chats.sql, 017_enable_realtime_chat_messages.sql, 018_chat_media_urls.sql
 ```
 
 ## Features
@@ -31,5 +31,6 @@ The `chat_messages` table is in the `supabase_realtime` publication. New message
 - `POST /api/chats` – Create or get chat (body: `{ userId: string }`)
 - `GET /api/chats/unread-count` – Unread message count
 - `GET /api/chats/[chatId]/messages` – List messages
-- `POST /api/chats/[chatId]/messages` – Send message (body: `{ content: string }`)
+- `POST /api/chats/[chatId]/messages` – Send message (body: `{ content?: string; media_urls?: string[] }`)
+- `POST /api/chats/upload` – Upload chat image (multipart form-data), returns `{ url: string }`
 - `POST /api/chats/[chatId]/read` – Mark as read
