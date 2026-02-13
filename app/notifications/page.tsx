@@ -22,7 +22,7 @@ export default async function NotificationsPage() {
   return (
     <div className="min-h-screen bg-black">
       <Sidebar username={me.username} isPremium={me.is_premium} />
-      <TopNav />
+      <TopNav username={me.username} avatarUrl={me.avatar_url} isPremium={me.is_premium} />
       <main className="ml-56 pt-14">
         <div className="mx-auto max-w-[600px] border-x border-neutral-800/80">
           <div className="sticky top-0 z-10 border-b border-neutral-800/80 bg-black/95 px-4 py-4 backdrop-blur-sm">

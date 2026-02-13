@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { Crown } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { Avatar } from '@/components/avatar/avatar';
+import { api } from '@/lib/api/client';
 
 export type FeedTab = 'explore' | 'following' | 'interests';
 
@@ -16,9 +19,15 @@ const FEED_OPTIONS: { value: FeedTab; label: string }[] = [
 interface TopNavProps {
   /** When false/undefined, show premium badge on My Interests tab to indicate upgrade unlocks unlimited. */
   isPremium?: boolean;
+  /** Current user username for profile link. Fetched client-side if not provided. */
+  username?: string;
+  /** Current user avatar URL. Fetched client-side if not provided. */
+  avatarUrl?: string | null;
 }
 
-export function TopNav({ isPremium }: TopNavProps) {
+export function TopNav({ isPremium, username: usernameProp, avatarUrl: avatarUrlProp }: TopNavProps) {
+  const [username, setUsername] = useState(usernameProp);
+  const [avatarUrl, setAvatarUrl] = useState(avatarUrlProp);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const currentTab = (searchParams.get('tab') as FeedTab) ?? 'explore';
@@ -27,6 +36,14 @@ export function TopNav({ isPremium }: TopNavProps) {
 
   const currentOption = FEED_OPTIONS.find((opt) => opt.value === currentTab) ?? FEED_OPTIONS[0];
   const base = pathname ?? '/';
+
+  useEffect(() => {
+    if (typeof usernameProp !== 'undefined' && typeof avatarUrlProp !== 'undefined') return;
+    api.getMe().then(({ data }) => {
+      if (data?.username) setUsername(data.username);
+      if (data?.avatar_url !== undefined) setAvatarUrl(data.avatar_url);
+    });
+  }, [usernameProp, avatarUrlProp]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,8 +63,9 @@ export function TopNav({ isPremium }: TopNavProps) {
 
   return (
     <header className="fixed left-56 right-0 top-0 z-30 border-b border-neutral-800/80 bg-black/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-[600px] items-center justify-center px-4">
-        <div className="relative" ref={dropdownRef}>
+      <div className="mx-auto flex h-14 max-w-[600px] items-center justify-between px-4">
+        <div className="min-w-0 flex-1" />
+        <div className="relative shrink-0" ref={dropdownRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800/80"
@@ -104,6 +122,24 @@ export function TopNav({ isPremium }: TopNavProps) {
                 );
               })}
             </div>
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <Link
+            href="/notifications"
+            className="flex items-center justify-center rounded-full p-2 transition-colors hover:bg-neutral-800/80"
+            aria-label="Notifications"
+          >
+            <NotificationBell />
+          </Link>
+          {username && (
+            <Link
+              href={`/profile/${username}`}
+              className="flex shrink-0 items-center rounded-full transition-opacity hover:opacity-90"
+              aria-label="Your profile"
+            >
+              <Avatar src={avatarUrl ?? undefined} fallback={username} size="sm" />
+            </Link>
           )}
         </div>
       </div>
