@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { Send, Minimize2, Maximize2, X, Heart } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/lib/api/client';
 import { useChat } from './chat-provider';
@@ -21,7 +22,9 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState('');
   const [clickedMessageId, setClickedMessageId] = useState<string | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatCtx = useChat();
 
   const loadMessages = useCallback(async () => {
@@ -86,30 +89,111 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
     }
   }, [chatId, input, sending, chatCtx]);
 
+  const handleSendLike = useCallback(async () => {
+    if (sending) return;
+
+    setSending(true);
+    const { data } = await api.sendChatMessage(chatId, '❤️');
+    setSending(false);
+
+    if (data) {
+      setMessages((prev) => [...prev, data]);
+      chatCtx?.refreshChatUnreadCount();
+    }
+  }, [chatId, sending, chatCtx]);
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
+    }
+  }, [input]);
+
   const name = otherUser.username ?? 'Unknown';
 
-  return (
-    <div className="flex h-[420px] w-[360px] flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl">
-      <div className="flex items-center gap-3 border-b border-neutral-800/80 px-4 py-3">
+  const header = (
+    <div className="flex items-center gap-3 border-b border-neutral-800/80 px-4 py-3">
+      <Link
+        href={`/profile/${name}`}
+        onClick={onClose}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
+        <Avatar src={otherUser.avatar_url ?? undefined} fallback={name} size="sm" />
+        <span className="truncate font-medium text-white">@{name}</span>
+      </Link>
+      <div className="flex shrink-0 gap-1">
+        <button
+          type="button"
+          onClick={() => setIsMinimized(true)}
+          className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
+          aria-label="Minimize"
+        >
+          <Minimize2 className="h-5 w-5" />
+        </button>
         <button
           type="button"
           onClick={onClose}
           className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
           aria-label="Close"
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="h-5 w-5" />
         </button>
-        <Link
-          href={`/profile/${name}`}
-          onClick={onClose}
-          className="flex min-w-0 flex-1 items-center gap-3"
-        >
-          <Avatar src={otherUser.avatar_url ?? undefined} fallback={name} size="sm" />
-          <span className="truncate font-medium text-white">@{name}</span>
-        </Link>
       </div>
+    </div>
+  );
+
+  const minimizedHeader = (
+    <div className="flex items-center gap-3 border-b-0 px-4 py-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Avatar src={otherUser.avatar_url ?? undefined} fallback={name} size="sm" />
+        <span className="truncate font-medium text-white">@{name}</span>
+      </div>
+      <div className="flex shrink-0 gap-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMinimized(false);
+          }}
+          className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
+          aria-label="Expand"
+        >
+          <Maximize2 className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+
+  if (isMinimized) {
+    return (
+      <div
+        className="flex w-[280px] cursor-pointer flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl"
+        onClick={() => setIsMinimized(false)}
+        onKeyDown={(e) => e.key === 'Enter' && setIsMinimized(false)}
+        role="button"
+        tabIndex={0}
+        aria-label="Expand chat"
+      >
+        {minimizedHeader}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[420px] w-[360px] flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl">
+      {header}
 
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {loading ? (
@@ -197,25 +281,45 @@ export function ChatConversation({ chatId, otherUser, onClose }: ChatConversatio
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          handleSend();
+          if (input.trim()) handleSend();
         }}
         className="border-t border-neutral-800/80 p-2"
       >
-        <div className="flex gap-2">
-          <input
-            type="text"
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (input.trim()) handleSend();
+              }
+            }}
             placeholder="Message..."
-            className="flex-1 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+            rows={1}
+            className="min-h-[42px] max-h-[120px] flex-1 resize-none overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || sending}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:bg-blue-500 disabled:opacity-50"
-          >
-            Send
-          </button>
+          {input.trim() ? (
+            <button
+              type="submit"
+              disabled={sending}
+              className="flex shrink-0 items-center justify-center p-2.5 text-blue-500 transition-opacity hover:text-blue-400 hover:opacity-90 disabled:opacity-50"
+              aria-label="Send message"
+            >
+              <Send className="h-5 w-5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSendLike}
+              disabled={sending}
+              className="flex shrink-0 items-center justify-center p-2.5 text-neutral-400 transition-colors hover:text-red-400 disabled:opacity-50"
+              aria-label="Send like"
+            >
+              <Heart className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </form>
     </div>
